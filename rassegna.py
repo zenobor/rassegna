@@ -71,6 +71,10 @@ class Articolo:
     altre_fonti: list[str] = field(default_factory=list)
 
     @property
+    def sommario_breve(self) -> str:
+        return accorcia(self.sommario, 350)
+
+    @property
     def parole(self) -> set[str]:
         testo = re.sub(r"[^\w\s]", " ", self.titolo.lower())
         return {p for p in testo.split() if len(p) > 3 and p not in STOPWORDS}
@@ -80,13 +84,18 @@ class Articolo:
 #  Utilità
 # --------------------------------------------------------------------------- #
 def pulisci_html(testo: str) -> str:
-    """Toglie tag e spazi doppi da un sommario RSS."""
-    testo = re.sub(r"<[^>]+>", " ", testo or "")
-    testo = html.unescape(testo)
-    return re.sub(r"\s+", " ", testo).strip()
+    """Pulisce un sommario RSS preservando i paragrafi forniti dal feed."""
+    testo = html.unescape(testo or "")
+    testo = re.sub(r"(?i)<\s*(?:br\s*/?|/p|/div)\s*>", "\n", testo)
+    testo = re.sub(r"<[^>]+>", " ", testo)
+    paragrafi = [re.sub(r"\s+", " ", p).strip() for p in testo.splitlines()]
+    return "\n\n".join(p for p in paragrafi if p)
 
 
-def accorcia(testo: str, n: int = 600) -> str:
+MAX_ESTRATTO_CARATTERI = 1800
+
+
+def accorcia(testo: str, n: int = MAX_ESTRATTO_CARATTERI) -> str:
     if len(testo) <= n:
         return testo
     taglio = testo[:n].rsplit(" ", 1)[0]
@@ -94,7 +103,7 @@ def accorcia(testo: str, n: int = 600) -> str:
 
 
 def sommario_feed(voce) -> str:
-    """Sceglie l'estratto più ricco pubblicato dal feed, senza recuperare l'articolo."""
+    """Sceglie l'estratto RSS più ricco, senza recuperare il testo dell'articolo."""
     testi = [voce.get("summary", ""), voce.get("description", "")]
     testi.extend(elemento.get("value", "") for elemento in voce.get("content", []) or [])
     estratti = [pulisci_html(testo) for testo in testi if testo]
@@ -161,6 +170,7 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
         dati = feedparser.parse(r.content)
 
     articoli = []
+    senza_estratto_informativo = 0
     for v in dati.entries:
         t = v.get("published_parsed") or v.get("updated_parsed")
         if not t:
@@ -171,10 +181,16 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
         titolo = pulisci_html(v.get("title", ""))
         if not titolo or not v.get("link"):
             continue
+        sommario = sommario_feed(v)
+        titolo_normalizzato = re.sub(r"\W+", "", titolo).casefold()
+        sommario_normalizzato = re.sub(r"\W+", "", sommario).casefold()
+        if not sommario or sommario_normalizzato == titolo_normalizzato:
+            senza_estratto_informativo += 1
+            continue
         articoli.append(Articolo(
             titolo=titolo,
             link=v["link"],
-            sommario=sommario_feed(v),
+            sommario=sommario,
             fonte=fonte["nome"],
             scheda=fonte.get("scheda", ""),
             data=data,
@@ -182,6 +198,12 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
             sezione=fonte.get("sezione", "esteri"),
         ))
     log.info("%-18s %3d articoli", fonte["nome"], len(articoli))
+    if senza_estratto_informativo:
+        log.info(
+            "%s articoli senza estratto informativo ignorati: %d",
+            fonte["nome"],
+            senza_estratto_informativo,
+        )
     return articoli
 
 
@@ -495,7 +517,7 @@ def testo_semplice(p: dict) -> str:
         for a in p["in_breve"]:
             testo = f"- {a.titolo} ({a.fonte})"
             if a.sommario:
-                testo += f" — {a.sommario}"
+                testo += f" — {a.sommario_breve}"
             righe.append(f"{testo}\n  {a.link}")
     return "\n".join(righe)
 
