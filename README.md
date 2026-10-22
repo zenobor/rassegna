@@ -14,7 +14,7 @@ The digest groups similar coverage and favors selected agencies, public broadcas
 and official feeds. Grouping is not independent fact-checking: this RSS-based app does
 not perform 20 live searches or verify every claim against primary documents.
 
-<p align="center"><img src="docs/anteprima.png" width="360" alt="Personal Digest Mail email preview"></p>
+<p align="center"><img src="docs/anteprima.png" width="300" alt="Personal Digest Mail email preview"></p>
 
 ## Set it up
 
