@@ -6,6 +6,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 import yaml
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import rassegna
 from rassegna import Articolo, classifica, cron_programmazione, invio_programmato, sommario_feed
@@ -46,6 +47,39 @@ class ProgrammazioneTest(unittest.TestCase):
         risultato = classifica(articoli, sezioni, filtra_argomenti=True)
         self.assertEqual([a.titolo for a in risultato], ["Attacco ransomware"])
         self.assertEqual(risultato[0].nome_sezione, "Cybersecurity")
+
+    def test_template_email_mostra_estratti_fonti_e_link_originali(self):
+        articolo = Articolo(
+            "Notizia di prova",
+            "https://example.com/articolo",
+            "Estratto completo pubblicato dal feed.",
+            "Fonte di prova",
+            "Testata indipendente",
+            datetime.now(timezone.utc),
+            sezione="cyber",
+            nome_sezione="Cybersecurity",
+        )
+        env = Environment(
+            loader=FileSystemLoader(rassegna.QUI / "templates"),
+            autoescape=select_autoescape(["html", "j2"]),
+        )
+        html_email = env.get_template("email.html.j2").render(
+            demo=False,
+            testata="Il mio giornale",
+            data_breve="giovedì 22 ottobre 2026",
+            numero=295,
+            sottotitolo="Cybersecurity",
+            data="GIOVEDÌ 22 OTTOBRE 2026",
+            prima=[articolo],
+            sezioni=[],
+            in_breve=[],
+            accadde_oggi=[],
+        )
+        self.assertIn("Notizia di prova", html_email)
+        self.assertIn("Estratto completo pubblicato dal feed.", html_email)
+        self.assertIn("Fonte: Fonte di prova", html_email)
+        self.assertIn("https://example.com/articolo", html_email)
+        self.assertIn("Leggi alla fonte originale", html_email)
 
     def test_configurazione_guidata_salva_preferenze_e_tutela_email(self):
         with TemporaryDirectory() as directory:

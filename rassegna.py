@@ -485,11 +485,17 @@ def testo_semplice(p: dict) -> str:
             righe.append(f"- {a.titolo} ({a.fonte})")
             if a.sommario:
                 righe.append(f"  {a.sommario}")
+            if a.altre_fonti:
+                righe.append(f"  Ripresa anche da: {', '.join(a.altre_fonti)}")
             righe.append(f"  Leggi la notizia: {a.link}")
         righe.append("")
     if p["in_breve"]:
         righe.append("IN BREVE")
-        righe += [f"- {a.titolo} ({a.fonte}) — {a.link}" for a in p["in_breve"]]
+        for a in p["in_breve"]:
+            testo = f"- {a.titolo} ({a.fonte})"
+            if a.sommario:
+                testo += f" — {a.sommario}"
+            righe.append(f"{testo}\n  {a.link}")
     return "\n".join(righe)
 
 

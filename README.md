@@ -101,6 +101,8 @@ Le fonti RSS e le impostazioni generali restano in **`config.yaml`**:
 > La rassegna non usa AI: mostra il testo breve reso disponibile da ciascun feed RSS (fino a
 > 600 caratteri) e collega sempre all'articolo originale. La quantità di dettagli dipende
 > dalla testata; non vengono scaricati o ripubblicati gli articoli integrali.
+> Ogni notizia è presentata con sezione, titolo, estratto, fonte e collegamento originale.
+> Le categorie impostate nella configurazione guidata sono personali al tuo fork.
 
 ---
 
