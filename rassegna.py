@@ -69,6 +69,7 @@ class Articolo:
     sezione: str = ""
     nome_sezione: str = ""
     altre_fonti: list[str] = field(default_factory=list)
+    lingua: str | None = None
 
     @property
     def parole(self) -> set[str]:
@@ -93,6 +94,29 @@ def sommario_feed(voce) -> str:
     testi = [voce.get("summary", ""), voce.get("description", "")]
     estratti = [pulisci_html(testo) for testo in testi if testo]
     return max(estratti, key=len, default="")
+
+
+def codice_lingua(valore: str | None) -> str | None:
+    if not valore:
+        return None
+    m = re.match(r"^\s*([a-z]{2,3})(?:[-_].*)?\s*$", str(valore), re.IGNORECASE)
+    return m.group(1).lower() if m else None
+
+
+def lingua_articolo(voce, feed, fonte: dict) -> str | None:
+    contenuti = voce.get("content", []) or []
+    metadati_voce = (
+        voce.get("language"),
+        voce.get("dc_language"),
+        voce.get("content_language"),
+        contenuti[0].get("language") if contenuti else None,
+    )
+    metadati_feed = (feed.get("language"), feed.get("dc_language"))
+    for valore in (*metadati_voce, *metadati_feed, fonte.get("lingua")):
+        lingua = codice_lingua(valore)
+        if lingua:
+            return lingua
+    return None
 
 
 def data_in_italiano(d: datetime) -> str:
@@ -181,6 +205,7 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
             data=data,
             immagine=immagine_dal_feed(v),
             sezione=fonte.get("sezione", "esteri"),
+            lingua=lingua_articolo(v, dati.feed, fonte),
         ))
     log.info("%-18s %3d articoli", fonte["nome"], len(articoli))
     if senza_estratto_informativo:
@@ -190,6 +215,20 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
             senza_estratto_informativo,
         )
     return articoli
+
+
+def filtra_lingua(articoli: list[Articolo], lingua_scelta: str) -> list[Articolo]:
+    lingua_scelta = normalizza_lingua(lingua_scelta)
+    if lingua_scelta == "all":
+        return articoli
+    selezionati = [a for a in articoli if not a.lingua or a.lingua == lingua_scelta]
+    senza_metadati = sum(a.lingua is None for a in selezionati)
+    if senza_metadati:
+        log.info(
+            "Lingua non dichiarata per %d articoli: inclusi senza filtro.",
+            senza_metadati,
+        )
+    return selezionati
 
 
 def classifica(
@@ -308,6 +347,16 @@ def _giorno_id(valore: str) -> str:
     return giorno
 
 
+def normalizza_lingua(valore: str) -> str:
+    valore = valore.strip().lower()
+    if valore in {"tutte", "tutti", "all", "*"}:
+        return "all"
+    lingua = codice_lingua(valore)
+    if lingua and re.fullmatch(r"[a-z]{2,3}(?:[-_][a-z0-9]+)*", valore):
+        return lingua
+    raise ValueError("Lingua non valida: usa un codice ISO (es. it, en, fr) o 'tutte'.")
+
+
 def configura(percorso: Path) -> int:
     cfg = carica_configurazione(percorso)
     pref_path = percorso.with_name("preferenze.yaml")
@@ -318,6 +367,17 @@ def configura(percorso: Path) -> int:
     testata = input(f"Nome della rassegna [{cfg.get('testata', 'Personal Digest Mail')}]: ").strip()
     if testata:
         cfg["testata"] = testata
+
+    lingua_default = preferenze.get("lingua_articoli", cfg.get("lingua_articoli", "it"))
+    while True:
+        lingua_input = input(
+            f"Lingua degli articoli (codice ISO, es. it/en/fr, oppure tutte) [{lingua_default}]: "
+        ).strip()
+        try:
+            lingua_articoli_scelta = normalizza_lingua(lingua_input or lingua_default)
+            break
+        except ValueError as e:
+            print(e)
 
     while True:
         fuso = input(f"Fuso orario [{cfg.get('fuso_orario', 'Europe/Rome')}]: ").strip()
@@ -410,6 +470,7 @@ def configura(percorso: Path) -> int:
     )
     preferenze.update({
         "testata": cfg.get("testata", "Personal Digest Mail"),
+        "lingua_articoli": lingua_articoli_scelta,
         "fuso_orario": fuso,
         "giorni_invio": giorni,
         "ora_invio": orario,
@@ -589,8 +650,9 @@ def main() -> int:
     articoli = []
     for f in cfg["fonti"]:
         articoli += leggi_feed(f, dal, demo_dir)
+    articoli = filtra_lingua(articoli, cfg.get("lingua_articoli", "it"))
     if not articoli:
-        log.error("Nessuna notizia trovata: controlla i feed in config.yaml")
+        log.error("Nessuna notizia trovata nella lingua scelta: controlla feed e preferenze.")
         return 1
 
     articoli = classifica(articoli, cfg["sezioni"], cfg.get("filtra_argomenti", False))

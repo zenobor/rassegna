@@ -19,7 +19,7 @@ includes in its feed.
    git clone https://github.com/YOUR-USERNAME/rassegna.git
    cd rassegna
    ```
-2. Install Python 3.12+ and configure your edition (topics, time zone, days, and time):
+2. Install Python 3.12+ and configure your edition (language, topics, time zone, days, and time):
    ```powershell
    py -m venv .venv
    .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -58,7 +58,9 @@ GitHub also runs these tests automatically on every push and pull request.
 ## Customize and troubleshoot
 
 - `preferenze.yaml`: topics and delivery schedule. Matching uses article titles and RSS summaries.
-- `config.yaml`: RSS sources, sections, article limits, and look-back period.
+- During setup, choose an article language using an ISO code (`it`, `en`, `fr`, etc.) or `tutte`.
+- `config.yaml`: RSS sources, their language, sections, article limits, and look-back period.
+- If a feed does not identify a language, its articles are kept rather than silently discarded.
 - `templates/`: email design.
 - A feed without a usable summary is skipped; unavailable feeds are reported in the Actions log.
 - If no stories match, broaden your keywords or add RSS sources.

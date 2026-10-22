@@ -75,12 +75,37 @@ class ProgrammazioneTest(unittest.TestCase):
             feed = Path(directory) / "feed.xml"
             feed.write_text("<rss/>", encoding="utf-8")
             with patch.object(
-                rassegna.feedparser, "parse", return_value=SimpleNamespace(entries=voci)
+                rassegna.feedparser,
+                "parse",
+                return_value=SimpleNamespace(entries=voci, feed={}),
             ):
                 articoli = rassegna.leggi_feed(
-                    {"nome": "Test", "file_demo": "feed.xml"}, adesso - timedelta(days=1), Path(directory)
+                    {"nome": "Test", "file_demo": "feed.xml", "lingua": "it"},
+                    adesso - timedelta(days=1),
+                    Path(directory),
                 )
         self.assertEqual([articolo.titolo for articolo in articoli], ["Articolo con dettagli"])
+        self.assertEqual(articoli[0].lingua, "it")
+
+    def test_filtro_lingua_rispetta_metadati_e_conserva_quelli_sconosciuti(self):
+        articoli = [
+            Articolo("Notizia italiana", "", "Testo", "Fonte", "", datetime.now(timezone.utc), lingua="it"),
+            Articolo("English story", "", "Text", "Source", "", datetime.now(timezone.utc), lingua="en"),
+            Articolo("Lingua non dichiarata", "", "Testo", "Fonte", "", datetime.now(timezone.utc)),
+        ]
+        risultato = rassegna.filtra_lingua(articoli, "EN-us")
+        self.assertEqual([a.titolo for a in risultato], ["English story", "Lingua non dichiarata"])
+        self.assertEqual(rassegna.filtra_lingua(articoli, "tutte"), articoli)
+
+    def test_lingua_dichiarata_nell_articolo_prevale_su_quella_del_feed(self):
+        self.assertEqual(
+            rassegna.lingua_articolo(
+                {"language": "EN-us"},
+                {"language": "it"},
+                {"lingua": "it"},
+            ),
+            "en",
+        )
 
     def test_argomenti_personali_escludono_le_notizie_fuori_tema(self):
         articoli = [
@@ -201,6 +226,7 @@ class ProgrammazioneTest(unittest.TestCase):
             )
             risposte = [
                 "Il mio giornale",
+                "en",
                 "Europe/Rome",
                 "lun,mer",
                 "07:20",
@@ -214,6 +240,7 @@ class ProgrammazioneTest(unittest.TestCase):
                 self.assertEqual(rassegna.configura(config), 0)
 
             preferenze = yaml.safe_load((root / "preferenze.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(preferenze["lingua_articoli"], "en")
             self.assertEqual(preferenze["giorni_invio"], ["lunedi", "mercoledi"])
             self.assertEqual(preferenze["sezioni"][0]["parole_chiave"], ["malware", "ransomware"])
             self.assertEqual(preferenze["sottotitolo"], "Cyber")

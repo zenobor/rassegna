@@ -71,50 +71,60 @@ sezioni:
 fonti:
   - nome: "Il Post"
     url: "https://www.ilpost.it/feed/"
+    lingua: it
     sezione: esteri
     scheda: "Quotidiano online indipendente · proprietà: Il Post srl (soci fondatori e giornalisti) · tono esplicativo"
 
   - nome: "ANSA"
     url: "https://www.ansa.it/sito/notizie/politica/politica_rss.xml"
+    lingua: it
     sezione: politica
     scheda: "Agenzia di stampa · cooperativa degli editori dei quotidiani italiani · taglio fattuale"
 
   - nome: "ANSA Mondo"
     url: "https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml"
+    lingua: it
     sezione: esteri
     scheda: "Agenzia di stampa · cooperativa degli editori dei quotidiani italiani · taglio fattuale"
 
   - nome: "Sky TG24"
     url: "https://tg24.sky.it/rss/tg24.xml"
+    lingua: it
     sezione: esteri
     scheda: "All-news TV · proprietà: Sky Italia (gruppo Comcast, USA) · generalista"
 
   - nome: "BBC News"
     url: "https://feeds.bbci.co.uk/news/world/rss.xml"
+    lingua: en
     sezione: esteri
     scheda: "Servizio pubblico britannico · finanziato dal canone · obbligo di imparzialità"
 
   - nome: "The Record"
     url: "https://therecord.media/feed"
+    lingua: en
     sezione: cyber
     scheda: "Testata cyber · edita da Recorded Future (threat intelligence, gruppo Mastercard)"
 
   - nome: "BleepingComputer"
     url: "https://www.bleepingcomputer.com/feed/"
+    lingua: en
     sezione: cyber
     scheda: "Sito tecnico indipendente · sicurezza informatica"
 
   - nome: "The Hacker News"
     url: "https://feeds.feedburner.com/TheHackersNews"
+    lingua: en
     sezione: cyber
     scheda: "Sito indipendente · sicurezza informatica · finanziato da pubblicità del settore"
 
   - nome: "War on the Rocks"
     url: "https://warontherocks.com/feed/"
+    lingua: en
     sezione: geopolitica
     scheda: "Analisi su difesa e sicurezza · indipendente (USA) · prospettiva atlantica"
 
   - nome: "ScienceDaily"
     url: "https://www.sciencedaily.com/rss/all.xml"
+    lingua: en
     sezione: scienza
     scheda: "Aggregatore di comunicati di università ed enti di ricerca"
