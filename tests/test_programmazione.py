@@ -87,15 +87,43 @@ class ProgrammazioneTest(unittest.TestCase):
         self.assertEqual([articolo.titolo for articolo in articoli], ["Articolo con dettagli"])
         self.assertEqual(articoli[0].lingua, "it")
 
-    def test_filtro_lingua_rispetta_metadati_e_conserva_quelli_sconosciuti(self):
+    def test_lingua_scelta_traduce_gli_articoli_stranieri_e_conserva_gli_sconosciuti(self):
         articoli = [
             Articolo("Notizia italiana", "", "Testo", "Fonte", "", datetime.now(timezone.utc), lingua="it"),
             Articolo("English story", "", "Text", "Source", "", datetime.now(timezone.utc), lingua="en"),
             Articolo("Lingua non dichiarata", "", "Testo", "Fonte", "", datetime.now(timezone.utc)),
         ]
-        risultato = rassegna.filtra_lingua(articoli, "EN-us")
-        self.assertEqual([a.titolo for a in risultato], ["English story", "Lingua non dichiarata"])
-        self.assertEqual(rassegna.filtra_lingua(articoli, "tutte"), articoli)
+        self.assertEqual(rassegna.traduci_articoli(articoli, "tutte"), articoli)
+        with patch.dict(os.environ, {"DEEPL_API_KEY": "test-key"}, clear=True), patch.object(
+            rassegna.requests, "post",
+            return_value=SimpleNamespace(
+                raise_for_status=lambda: None,
+                json=lambda: {"translations": [
+                    {"text": "Translated Italian story"},
+                    {"text": "Translated Italian summary"},
+                ]},
+            ),
+        ) as post:
+            risultato = rassegna.traduci_articoli(articoli, "EN-us")
+        self.assertEqual(
+            [a.titolo for a in risultato],
+            ["Translated Italian story", "English story", "Lingua non dichiarata"],
+        )
+        self.assertEqual(risultato[0].sommario, "Translated Italian summary")
+        self.assertEqual(risultato[0].tradotto_da, "it")
+        self.assertEqual(risultato[1].lingua, "en")
+        post.assert_called_once()
+        self.assertEqual(post.call_args.args[0], "https://api.deepl.com/v2/translate")
+        self.assertEqual(post.call_args.kwargs["data"]["target_lang"], "EN")
+        self.assertEqual(post.call_args.kwargs["data"]["text"], ["Notizia italiana", "Testo"])
+
+    def test_traduzione_necessita_chiave_deepl_per_articoli_stranieri(self):
+        articolo = Articolo(
+            "English story", "", "Text", "Source", "", datetime.now(timezone.utc), lingua="en"
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(ValueError, "DEEPL_API_KEY"):
+                rassegna.traduci_articoli([articolo], "it")
 
     def test_lingua_dichiarata_nell_articolo_prevale_su_quella_del_feed(self):
         self.assertEqual(
@@ -145,6 +173,7 @@ class ProgrammazioneTest(unittest.TestCase):
             datetime.now(timezone.utc),
             sezione="cyber",
             nome_sezione="Cybersecurity",
+            tradotto_da="en",
         )
         env = Environment(
             loader=FileSystemLoader(rassegna.QUI / "templates"),
@@ -166,6 +195,7 @@ class ProgrammazioneTest(unittest.TestCase):
         self.assertIn("Estratto completo pubblicato dal feed.", html_email)
         self.assertGreaterEqual(html_email.count("Estratto completo pubblicato dal feed."), 2)
         self.assertIn("Fonte: Fonte di prova", html_email)
+        self.assertIn("Tradotto con DeepL da EN.", html_email)
         self.assertIn("https://example.com/articolo", html_email)
         self.assertIn("Leggi alla fonte originale", html_email)
 

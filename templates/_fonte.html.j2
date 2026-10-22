@@ -2,4 +2,5 @@
   <span style="text-transform:uppercase;letter-spacing:1px;color:#8b1a1a;font-weight:600;">Fonte: {{ a.fonte }}</span>
   {% if a.altre_fonti %}<span> · ripresa anche da {{ a.altre_fonti | join(', ') }}</span>{% endif %}
   {% if a.scheda %}<br><span style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0;color:#6b6b6b;">{{ a.scheda }}</span>{% endif %}
+  {% if a.tradotto_da %}<br><span style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0;color:#6b6b6b;">Tradotto con DeepL da {{ a.tradotto_da | upper }}.</span>{% endif %}
 </div>

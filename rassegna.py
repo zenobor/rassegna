@@ -70,6 +70,7 @@ class Articolo:
     nome_sezione: str = ""
     altre_fonti: list[str] = field(default_factory=list)
     lingua: str | None = None
+    tradotto_da: str | None = None
 
     @property
     def parole(self) -> set[str]:
@@ -217,18 +218,76 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
     return articoli
 
 
-def filtra_lingua(articoli: list[Articolo], lingua_scelta: str) -> list[Articolo]:
+def traduci_articoli(articoli: list[Articolo], lingua_scelta: str) -> list[Articolo]:
     lingua_scelta = normalizza_lingua(lingua_scelta)
     if lingua_scelta == "all":
         return articoli
-    selezionati = [a for a in articoli if not a.lingua or a.lingua == lingua_scelta]
-    senza_metadati = sum(a.lingua is None for a in selezionati)
+    stranieri = [a for a in articoli if a.lingua and a.lingua != lingua_scelta]
+    senza_metadati = sum(a.lingua is None for a in articoli)
     if senza_metadati:
         log.info(
-            "Lingua non dichiarata per %d articoli: inclusi senza filtro.",
+            "Lingua non dichiarata per %d articoli: inclusi senza traduzione.",
             senza_metadati,
         )
-    return selezionati
+    if not stranieri:
+        return articoli
+
+    api_key = os.environ.get("DEEPL_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "Sono presenti articoli in altre lingue. Configura DEEPL_API_KEY nei Secrets "
+            "di GitHub o nel file .env per tradurli."
+        )
+
+    host = "api-free.deepl.com" if api_key.endswith(":fx") else "api.deepl.com"
+    url = f"https://{host}/v2/translate"
+    elementi = []
+    for articolo in stranieri:
+        elementi.extend(((articolo, "titolo", articolo.titolo), (articolo, "sommario", articolo.sommario)))
+
+    indice = 0
+    tradotti = 0
+    while indice < len(elementi):
+        gruppo = []
+        byte_gruppo = 0
+        while indice < len(elementi) and len(gruppo) < 50:
+            articolo, campo, testo = elementi[indice]
+            dimensione = len(testo.encode("utf-8"))
+            if dimensione > 120_000:
+                raise ValueError(
+                    f"Testo troppo lungo per DeepL nell'articolo: {articolo.titolo}"
+                )
+            if gruppo and byte_gruppo + dimensione > 120_000:
+                break
+            gruppo.append((articolo, campo, testo))
+            byte_gruppo += dimensione
+            indice += 1
+
+        risposta = requests.post(
+            url,
+            headers={"Authorization": f"DeepL-Auth-Key {api_key}"},
+            data={
+                "text": [testo for _, _, testo in gruppo],
+                "target_lang": lingua_scelta.upper(),
+                "preserve_formatting": "1",
+            },
+            timeout=30,
+        )
+        risposta.raise_for_status()
+        traduzioni = risposta.json().get("translations", [])
+        if len(traduzioni) != len(gruppo):
+            raise ValueError("DeepL ha restituito un numero inatteso di traduzioni.")
+        for (articolo, campo, _), risultato in zip(gruppo, traduzioni):
+            if campo == "titolo":
+                articolo.titolo = risultato["text"]
+                articolo.tradotto_da = articolo.lingua
+            else:
+                articolo.sommario = risultato["text"]
+            articolo.lingua = lingua_scelta
+            tradotti += campo == "titolo"
+
+    log.info("%d articoli tradotti con DeepL in %s.", tradotti, lingua_scelta)
+    return articoli
 
 
 def classifica(
@@ -554,6 +613,8 @@ def testo_semplice(p: dict) -> str:
             righe.append(f"- {a.titolo} ({a.fonte})")
             if a.sommario:
                 righe.append(f"  {a.sommario}")
+            if a.tradotto_da:
+                righe.append(f"  Tradotto con DeepL da {a.tradotto_da.upper()}.")
             if a.altre_fonti:
                 righe.append(f"  Ripresa anche da: {', '.join(a.altre_fonti)}")
             righe.append(f"  Leggi la notizia: {a.link}")
@@ -647,10 +708,15 @@ def main() -> int:
     else:
         dal = datetime.now(timezone.utc) - timedelta(hours=cfg.get("ore_indietro", 26))
 
+    carica_env(QUI / ".env")
     articoli = []
     for f in cfg["fonti"]:
         articoli += leggi_feed(f, dal, demo_dir)
-    articoli = filtra_lingua(articoli, cfg.get("lingua_articoli", "it"))
+    try:
+        articoli = traduci_articoli(articoli, cfg.get("lingua_articoli", "it"))
+    except (requests.RequestException, ValueError, KeyError) as e:
+        log.error("Traduzione degli articoli non riuscita: %s", e)
+        return 1
     if not articoli:
         log.error("Nessuna notizia trovata nella lingua scelta: controlla feed e preferenze.")
         return 1
@@ -678,7 +744,6 @@ def main() -> int:
         Path(args.anteprima).write_text(corpo_html, encoding="utf-8")
         log.info("Anteprima salvata in %s", args.anteprima)
     if args.invia:
-        carica_env(QUI / ".env")
         for var in ("SMTP_USER", "SMTP_PASSWORD"):
             if not os.environ.get(var):
                 log.error("Manca %s: impostalo nei Secrets di GitHub o nel file .env", var)

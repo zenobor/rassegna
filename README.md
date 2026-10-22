@@ -32,8 +32,9 @@ git commit -m "Set up my digest"
 git push
 ```
 4. In **Settings → Secrets and variables → Actions**, add `SMTP_USER`, `SMTP_PASSWORD`,
-   and `MAIL_TO`. Gmail requires a [Google App Password](https://myaccount.google.com/apppasswords).
-   For other providers, also set `SMTP_HOST` and `SMTP_PORT`. Never commit credentials.
+   `MAIL_TO`, and `DEEPL_API_KEY`. Gmail requires a [Google App Password](https://myaccount.google.com/apppasswords).
+   Get a DeepL API key from DeepL; translation may be subject to its usage limits or charges.
+   For other email providers, also set `SMTP_HOST` and `SMTP_PORT`. Never commit credentials.
 
 Then open **Actions → Personal Digest Mail → Run workflow** to test delivery.
 Automatic emails follow the schedule you selected. GitHub Actions may run a little late.
@@ -48,6 +49,7 @@ Neither preview command sends email:
 # Live RSS preview
 .\.venv\Scripts\python.exe rassegna.py --anteprima
 ```
+The live preview may send foreign-language RSS summaries to DeepL and use your API quota.
 Run the tests with:
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
@@ -59,6 +61,10 @@ GitHub also runs these tests automatically on every push and pull request.
 
 - `preferenze.yaml`: topics and delivery schedule. Matching uses article titles and RSS summaries.
 - During setup, choose an article language using an ISO code (`it`, `en`, `fr`, etc.) or `tutte`.
+  Articles already in that language stay as published; foreign-language RSS titles and
+  summaries are translated with DeepL before topic matching. `tutte` leaves articles
+  untranslated. Add `DEEPL_API_KEY` to your local `.env` and GitHub Secrets. Foreign
+  feed text is sent to DeepL and may use your API quota.
 - `config.yaml`: RSS sources, their language, sections, article limits, and look-back period.
 - If a feed does not identify a language, its articles are kept rather than silently discarded.
 - `templates/`: email design.

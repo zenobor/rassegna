@@ -46,10 +46,12 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
+          DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
         run: |
           if [ -z "$SMTP_HOST" ]; then unset SMTP_HOST; fi
           if [ -z "$SMTP_PORT" ]; then unset SMTP_PORT; fi
           if [ -z "$MAIL_TO" ]; then unset MAIL_TO; fi
+          if [ -z "$DEEPL_API_KEY" ]; then unset DEEPL_API_KEY; fi
           python rassegna.py --anteprima rassegna.html --invia
 
       - name: Salva una copia dell'HTML
