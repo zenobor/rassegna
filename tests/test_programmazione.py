@@ -80,12 +80,23 @@ class ProgrammazioneTest(unittest.TestCase):
                 return_value=SimpleNamespace(entries=voci, feed={}),
             ):
                 articoli = rassegna.leggi_feed(
-                    {"nome": "Test", "file_demo": "feed.xml", "lingua": "it"},
+                    {
+                        "nome": "Test",
+                        "file_demo": "feed.xml",
+                        "lingua": "it",
+                        "priorita": 5,
+                    },
                     adesso - timedelta(days=1),
                     Path(directory),
                 )
         self.assertEqual([articolo.titolo for articolo in articoli], ["Articolo con dettagli"])
         self.assertEqual(articoli[0].lingua, "it")
+        self.assertEqual(articoli[0].priorita, 5)
+
+    def test_immagini_sono_accettate_solo_se_https(self):
+        self.assertTrue(rassegna._url_immagine_valido("https://cdn.example.com/photo.jpg"))
+        self.assertFalse(rassegna._url_immagine_valido("http://example.com/photo.jpg"))
+        self.assertFalse(rassegna._url_immagine_valido("javascript:alert(1)"))
 
     def test_lingua_scelta_traduce_gli_articoli_stranieri_e_conserva_gli_sconosciuti(self):
         articoli = [
@@ -163,6 +174,92 @@ class ProgrammazioneTest(unittest.TestCase):
         self.assertEqual(risultato[0].sezione, "esteri")
         self.assertEqual(risultato[0].nome_sezione, "Esteri")
 
+    def test_doppioni_preferiscono_articolo_originale_e_linkano_le_altre_fonti(self):
+        data = datetime.now(timezone.utc)
+        tradotto = Articolo(
+            "Cyber attack hits major company",
+            "https://translated.example/story",
+            "Translated summary.",
+            "Fonte estera",
+            "Testata specializzata",
+            data,
+            lingua="it",
+            tradotto_da="en",
+        )
+        originale = Articolo(
+            "Cyber attack hits major company",
+            "https://original.example/story",
+            "Original summary.",
+            "Fonte originale",
+            "Agenzia ufficiale",
+            data,
+            lingua="it",
+        )
+        raggruppati = rassegna.raggruppa_doppioni([tradotto, originale])
+        self.assertEqual(len(raggruppati), 1)
+        self.assertIs(raggruppati[0], originale)
+        self.assertEqual(
+            raggruppati[0].altre_fonti,
+            [{
+                "nome": "Fonte estera",
+                "link": "https://translated.example/story",
+                "scheda": "Testata specializzata",
+            }],
+        )
+
+    def test_configurazione_sezioni_rispetta_ordine_e_sezioni_brevi(self):
+        cfg = rassegna.carica_configurazione(rassegna.QUI / "config.yaml")
+        ids = [sezione["id"] for sezione in cfg["sezioni"]]
+        self.assertEqual(
+            ids,
+            [
+                "politica", "intelligence", "terrorismo", "geopolitica", "ibrida",
+                "cyber", "tecnologia", "esteri", "economia", "scienza", "cultura",
+            ],
+        )
+        self.assertEqual(cfg["max_in_breve"], 8)
+        self.assertTrue(all(len(fonte["scheda"].split()) <= 6 for fonte in cfg["fonti"]))
+
+    def test_impaginazione_mettere_in_evidenza_le_notizie_riprese_da_piu_fonti(self):
+        data = datetime.now(timezone.utc)
+        notizia_condivisa = Articolo(
+            "Story reported by several outlets",
+            "https://news.example/shared",
+            "Shared summary.",
+            "Quotidiano",
+            "",
+            data,
+            sezione="cyber",
+            altre_fonti=[{
+                "nome": "Agenzia",
+                "link": "https://news.example/agency",
+                "scheda": "",
+            }],
+        )
+        notizia_ufficiale = Articolo(
+            "Official advisory",
+            "https://official.example/advisory",
+            "Official summary.",
+            "Agenzia ufficiale",
+            "",
+            data,
+            sezione="cyber",
+            priorita=0,
+        )
+        pagina = rassegna.impagina(
+            {
+                "sezioni": [{"id": "cyber", "nome": "Cyber", "max_articoli": 2}],
+                "max_prima_pagina": 2,
+                "fonti": [],
+            },
+            [notizia_ufficiale, notizia_condivisa],
+            data,
+        )
+        self.assertEqual(
+            [articolo.titolo for articolo in pagina["prima"]],
+            ["Story reported by several outlets", "Official advisory"],
+        )
+
     def test_template_email_mostra_estratti_fonti_e_link_originali(self):
         articolo = Articolo(
             "Notizia di prova",
@@ -173,6 +270,11 @@ class ProgrammazioneTest(unittest.TestCase):
             datetime.now(timezone.utc),
             sezione="cyber",
             nome_sezione="Cybersecurity",
+            altre_fonti=[{
+                "nome": "Seconda fonte",
+                "link": "https://second.example/story",
+                "scheda": "Agenzia pubblica",
+            }],
             tradotto_da="en",
         )
         env = Environment(
@@ -194,9 +296,12 @@ class ProgrammazioneTest(unittest.TestCase):
         self.assertIn("Notizia di prova", html_email)
         self.assertIn("Estratto completo pubblicato dal feed.", html_email)
         self.assertGreaterEqual(html_email.count("Estratto completo pubblicato dal feed."), 2)
-        self.assertIn("Fonte: Fonte di prova", html_email)
+        self.assertIn('Fonte: <a href="https://example.com/articolo"', html_email)
+        self.assertIn(">Fonte di prova</a>", html_email)
         self.assertIn("Tradotto con DeepL da EN.", html_email)
         self.assertIn("https://example.com/articolo", html_email)
+        self.assertIn('href="https://second.example/story"', html_email)
+        self.assertIn("Seconda fonte", html_email)
         self.assertIn("Leggi alla fonte originale", html_email)
 
     def test_invio_email_costruisce_messaggio_e_usa_tls(self):

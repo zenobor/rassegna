@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="{{ lingua_email }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -15,12 +15,12 @@
 </table>
 {% endif %}
 
-<table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:676px;margin:0 auto;">
+<table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:640px;margin:0 auto;">
 <tr><td style="padding:0 18px;">
 
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="text-align:center;">
     <tr><td style="padding:22px 0 0;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#6b6b6b;">Anno {{ data_breve[-4:] }} · N. {{ numero }}</td></tr>
-    <tr><td style="padding:1px 0 0;font-family:'UnifrakturMaguntia','Old English Text MT',Georgia,serif;font-size:36px;line-height:1.2;color:#111;">{{ testata }}</td></tr>
+    <tr><td style="padding:1px 0 0;font-family:'UnifrakturMaguntia','Old English Text MT',Georgia,serif;font-size:28px;line-height:1.2;overflow-wrap:anywhere;color:#111;">{{ testata }}</td></tr>
     {% if sottotitolo %}<tr><td style="padding:6px 0;font-family:'Libre Baskerville',Georgia,serif;font-size:12px;font-style:italic;line-height:1.6;color:#6b6b6b;">{{ sottotitolo }}</td></tr>{% endif %}
     <tr><td style="padding:3px 0 12px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#111;">{{ data }}</td></tr>
     <tr><td style="height:4px;border-top:3px double #111;border-bottom:1px solid #111;font-size:0;line-height:0;">&nbsp;</td></tr>
@@ -28,9 +28,6 @@
 
   {% if prima %}
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-    <tr><td style="padding-top:18px;border-bottom:4px solid #111;">
-      <div style="padding:0 0 8px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:16px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#111;">Prima pagina</div>
-    </td></tr>
     {% for a in prima %}
     {% set grande = loop.first %}
     <tr><td style="padding:18px 0 20px;{% if not loop.first %}border-top:1px solid #e4e0d8;{% endif %}">
@@ -39,10 +36,15 @@
       <div style="margin:0 0 14px;font-family:'Libre Baskerville',Georgia,serif;font-size:12px;font-style:italic;color:#6b6b6b;">Foto: {{ a.fonte }}</div>
       {% endif %}
       <div style="margin:0 0 6px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#8b1a1a;">{{ a.nome_sezione or "In evidenza" }}</div>
-      <h2 style="margin:0 0 9px;font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-weight:800;font-size:{{ 30 if grande else 23 }}px;line-height:1.2;color:#111;">
+      <h2 style="margin:0 0 9px;font-family:'Playfair Display',Georgia,'Noto Serif','Times New Roman',serif;font-weight:800;font-size:{{ 30 if grande else 25 }}px;line-height:1.18;color:#111;">
         <a href="{{ a.link }}" style="color:#111;text-decoration:none;">{{ a.titolo }}</a>
       </h2>
-      {% if a.sommario %}<div style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;line-height:1.6;white-space:pre-line;color:#1a1a1a;">{{ a.sommario }}</div>{% endif %}
+      {% if a.sottotitolo %}<div style="margin:0 0 12px;font-family:'Libre Baskerville',Georgia,'Noto Serif',serif;font-size:16px;font-style:italic;line-height:1.5;color:#6b6b6b;">{{ a.sottotitolo }}</div>{% endif %}
+      {% if a.immagine and not grande %}
+      <a href="{{ a.link }}" style="text-decoration:none;"><img src="{{ a.immagine }}" alt="" width="640" style="display:block;width:100%;max-width:640px;height:auto;border:0;margin:0 0 6px;"></a>
+      <div style="margin:0 0 14px;font-family:'Libre Baskerville',Georgia,serif;font-size:12px;font-style:italic;color:#6b6b6b;">Foto: {{ a.fonte }}</div>
+      {% endif %}
+      {% if a.testo_articolo %}<div style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;line-height:1.55;white-space:pre-line;color:#1a1a1a;">{{ a.testo_articolo }}</div>{% endif %}
       {% include "_fonte.html.j2" %}
       <div style="margin-top:8px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:#8b1a1a;">Leggi alla fonte originale →</div>
     </td></tr>
@@ -58,14 +60,15 @@
     {% for a in s.articoli %}
     <tr><td style="padding:18px 0 20px;{% if not loop.first %}border-top:1px solid #e4e0d8;{% endif %}">
       <div style="margin:0 0 6px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#8b1a1a;">{{ a.nome_sezione or s.nome }}</div>
-      <h2 style="margin:0 0 9px;font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-weight:800;font-size:{{ 25 if loop.first else 21 }}px;line-height:1.22;color:#111;">
+      <h2 style="margin:0 0 9px;font-family:'Playfair Display',Georgia,'Noto Serif','Times New Roman',serif;font-weight:800;font-size:{{ 25 if loop.first else 20 }}px;line-height:1.18;color:#111;">
         <a href="{{ a.link }}" style="color:#111;text-decoration:none;">{{ a.titolo }}</a>
       </h2>
+      {% if a.sottotitolo %}<div style="margin:0 0 12px;font-family:'Libre Baskerville',Georgia,'Noto Serif',serif;font-size:16px;font-style:italic;line-height:1.5;color:#6b6b6b;">{{ a.sottotitolo }}</div>{% endif %}
       {% if a.immagine and loop.first %}
       <a href="{{ a.link }}" style="text-decoration:none;"><img src="{{ a.immagine }}" alt="" width="640" style="display:block;width:100%;max-width:640px;height:auto;border:0;margin:0 0 6px;"></a>
       <div style="margin:0 0 14px;font-family:'Libre Baskerville',Georgia,serif;font-size:12px;font-style:italic;color:#6b6b6b;">Foto: {{ a.fonte }}</div>
       {% endif %}
-      {% if a.sommario %}<div style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.6;white-space:pre-line;color:#1a1a1a;">{{ a.sommario }}</div>{% endif %}
+      {% if a.testo_articolo %}<div style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;line-height:1.55;white-space:pre-line;color:#1a1a1a;">{{ a.testo_articolo }}</div>{% endif %}
       {% include "_fonte.html.j2" %}
       <div style="margin-top:8px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:#8b1a1a;">Leggi alla fonte originale →</div>
     </td></tr>
@@ -79,10 +82,11 @@
       <div style="font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:16px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#111;">In breve</div>
     </td></tr>
     <tr><td style="padding:12px 0 0;">
-      <ul style="margin:0;padding-left:22px;font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:#1a1a1a;">
+      <ul style="margin:0;padding-left:22px;font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.55;color:#1a1a1a;">
       {% for a in in_breve %}
         <li style="margin:0 0 12px;">
           <b>{{ a.nome_sezione or "Notizie" }}:</b> {{ a.titolo }}{% if a.sommario %} — {{ a.sommario }}{% endif %}
+          {% if a.tradotto_da %}<span style="font-family:'Libre Baskerville',Georgia,serif;font-size:11px;font-style:italic;color:#6b6b6b;">(tradotto con DeepL da {{ a.tradotto_da | upper }})</span>{% endif %}
           <a href="{{ a.link }}" style="color:#8b1a1a;text-decoration:none;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;"> {{ a.fonte }} →</a>
         </li>
       {% endfor %}
@@ -94,7 +98,7 @@
   {% if accadde_oggi %}
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:24px;">
     <tr><td style="padding:14px 16px;background:#f5f1e9;">
-      <div style="margin:0 0 8px;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:800;color:#111;">Accadde oggi</div>
+      <div style="margin:0 0 8px;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:800;color:#111;">Cultura · Accadde oggi</div>
       {% for e in accadde_oggi %}
       <div style="margin:0 0 7px;font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#1a1a1a;"><b>{{ e.anno }}</b> — {{ e.testo }}</div>
       {% endfor %}
@@ -105,7 +109,7 @@
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px;">
     <tr><td style="padding:14px 0 30px;border-top:3px double #111;text-align:center;">
       <div style="font-family:'UnifrakturMaguntia','Old English Text MT',Georgia,serif;font-size:22px;color:#111;">{{ testata }}</div>
-      <div style="margin-top:8px;font-family:'Libre Baskerville',Georgia,serif;font-size:11px;font-style:italic;line-height:1.6;color:#6b6b6b;">La rassegna mostra titoli ed estratti disponibili nei feed RSS. I link rimandano alle testate originali; immagini e contenuti appartengono ai rispettivi editori.</div>
+      <div style="margin-top:8px;font-family:'Libre Baskerville',Georgia,serif;font-size:11px;font-style:italic;line-height:1.6;color:#6b6b6b;">Gli estratti provengono dai feed RSS delle testate. Le immagini e gli articoli completi appartengono ai rispettivi editori; i link rimandano alle fonti originali.</div>
     </td></tr>
   </table>
 

@@ -4,17 +4,17 @@
 # ============================================================
 
 testata: "Personal Digest Mail"
-sottotitolo: "Politica · Intelligence · Terrorismo · Guerra ibrida · Cyber · Scienza e cultura"
+sottotitolo: "Politica · Intelligence · Terrorismo · Geopolitica · Guerra ibrida · Cyber · Tecnologia · Esteri · Economia · Scienza e cultura"
 lingua: "it"
 fuso_orario: "Europe/Rome"
 
 # Quante ore indietro guardare (24 = notizie dell'ultimo giorno)
 ore_indietro: 26
 
-# Numero massimo di articoli per sezione e in prima pagina
+# Limiti editoriali: le singole sezioni possono definire max_articoli.
 max_per_sezione: 6
 max_prima_pagina: 4
-max_in_breve: 30
+max_in_breve: 8
 
 # Cerca l'immagine dentro la pagina dell'articolo se il feed non la fornisce
 # (più lento, ma la rassegna è più bella)
@@ -33,33 +33,50 @@ accadde_oggi: true
 #  (es. "terroris" trova terrorismo, terroristi, terroristico).
 # ------------------------------------------------------------
 sezioni:
-  - id: cyber
-    nome: "Cybersecurity"
-    parole_chiave: [hacker, ransomware, cyber, malware, phishing, "data breach", "violazione dei dati", vulnerabilit, exploit, "zero-day", ddos, botnet, apt]
+  - id: politica
+    nome: "Politica italiana"
+    max_articoli: 6
+    parole_chiave: [governo, meloni, parlamento, senato, camera, ministro, decreto, schlein, elezioni, mattarella]
   - id: intelligence
     nome: "Servizi segreti e intelligence"
+    max_articoli: 4
     parole_chiave: [intelligence, spionaggio, spia, spie, "servizi segreti", aise, aisi, dis, cia, mossad, mi6, fsb, gru, espionage, spy, spies]
   - id: terrorismo
     nome: "Terrorismo"
+    max_articoli: 4
     parole_chiave: [terroris, jihad, "isis", "stato islamico", "al-qaeda", attentat, terror]
-  - id: ibrida
-    nome: "Guerra ibrida"
-    parole_chiave: [sabotaggi, disinformazione, "guerra ibrida", "hybrid", "cavi sottomarini", "undersea cable", sabotage, "flotta ombra", "shadow fleet", "droni sopra", "interferenz"]
   - id: geopolitica
     nome: "Guerre e geopolitica"
+    max_articoli: 6
     parole_chiave: [guerra, ucraina, russia, israele, gaza, iran, nato, cina, taiwan, missil, esercito, war, ukraine, military]
-  - id: politica
-    nome: "Politica italiana"
-    parole_chiave: [governo, meloni, parlamento, senato, camera, ministro, decreto, schlein, elezioni, mattarella]
+  - id: ibrida
+    nome: "Guerra ibrida"
+    max_articoli: 4
+    parole_chiave: [sabotaggi, disinformazione, "guerra ibrida", "hybrid", "cavi sottomarini", "undersea cable", sabotage, "flotta ombra", "shadow fleet", "droni sopra", "interferenz"]
+  - id: cyber
+    nome: "Cybersecurity e attacchi hacker"
+    max_articoli: 6
+    parole_chiave: [hacker, ransomware, cyber, malware, phishing, "data breach", "violazione dei dati", vulnerabilit, exploit, "zero-day", ddos, botnet, apt, cybersecurity]
   - id: tecnologia
     nome: "Tecnologia"
+    max_articoli: 4
     parole_chiave: [intelligenza artificiale, ia, "artificial intelligence", chip, nvidia, openai, anthropic, apple, google, microsoft, startup, smartphone]
   - id: esteri
     nome: "Esteri"
+    max_articoli: 3
     parole_chiave: []
+  - id: economia
+    nome: "Economia"
+    max_articoli: 3
+    parole_chiave: [economia, inflazione, mercati, borsa, spread, pil, "tassi di interesse", economy, inflation, markets, stocks]
   - id: scienza
     nome: "Scienza e curiosità"
+    max_articoli: 4
     parole_chiave: [scienziat, ricercatori, studio, scoperta, nasa, esa, spazio, researchers, scientists]
+  - id: cultura
+    nome: "Cultura"
+    max_articoli: 4
+    parole_chiave: [storia, archeologia, museo, mostra, libro, arte, history, archaeology, museum, exhibition, book]
 
 # ------------------------------------------------------------
 #  Fonti (feed RSS).
@@ -67,64 +84,117 @@ sezioni:
 #  scheda   = la nota in piccolo accanto alla fonte: orientamento,
 #             proprietà, interessi. Sono descrizioni INDICATIVE:
 #             verificale e correggile secondo le tue valutazioni.
+#  priorita = ordine editoriale: un numero più basso ha precedenza.
 # ------------------------------------------------------------
 fonti:
   - nome: "Il Post"
     url: "https://www.ilpost.it/feed/"
     lingua: it
+    priorita: 2
     sezione: esteri
-    scheda: "Quotidiano online indipendente · proprietà: Il Post srl (soci fondatori e giornalisti) · tono esplicativo"
+    scheda: "Quotidiano indipendente, taglio esplicativo"
 
   - nome: "ANSA"
     url: "https://www.ansa.it/sito/notizie/politica/politica_rss.xml"
     lingua: it
+    priorita: 1
     sezione: politica
-    scheda: "Agenzia di stampa · cooperativa degli editori dei quotidiani italiani · taglio fattuale"
+    scheda: "Agenzia italiana, cooperativa editori"
 
   - nome: "ANSA Mondo"
     url: "https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml"
     lingua: it
+    priorita: 1
     sezione: esteri
-    scheda: "Agenzia di stampa · cooperativa degli editori dei quotidiani italiani · taglio fattuale"
+    scheda: "Agenzia italiana, cooperativa editori"
+
+  - nome: "ANSA Economia"
+    url: "https://www.ansa.it/sito/notizie/economia/economia_rss.xml"
+    lingua: it
+    priorita: 1
+    sezione: economia
+    scheda: "Agenzia italiana, cooperativa editori"
 
   - nome: "Sky TG24"
     url: "https://tg24.sky.it/rss/tg24.xml"
     lingua: it
+    priorita: 3
     sezione: esteri
-    scheda: "All-news TV · proprietà: Sky Italia (gruppo Comcast, USA) · generalista"
+    scheda: "All-news, gruppo Comcast"
 
   - nome: "BBC News"
     url: "https://feeds.bbci.co.uk/news/world/rss.xml"
     lingua: en
+    priorita: 2
     sezione: esteri
-    scheda: "Servizio pubblico britannico · finanziato dal canone · obbligo di imparzialità"
+    scheda: "Servizio pubblico britannico"
+
+  - nome: "Deutsche Welle"
+    url: "https://rss.dw.com/xml/rss-en-all"
+    lingua: en
+    priorita: 2
+    sezione: esteri
+    scheda: "Servizio pubblico tedesco"
+
+  - nome: "NOS Nieuws"
+    url: "https://feeds.nos.nl/nosnieuwsalgemeen"
+    lingua: nl
+    priorita: 2
+    sezione: esteri
+    scheda: "Servizio pubblico olandese"
+
+  - nome: "CISA Advisories"
+    url: "https://www.cisa.gov/cybersecurity-advisories/all.xml"
+    lingua: en
+    priorita: 0
+    sezione: cyber
+    scheda: "Agenzia ufficiale USA"
 
   - nome: "The Record"
     url: "https://therecord.media/feed"
     lingua: en
+    priorita: 3
     sezione: cyber
-    scheda: "Testata cyber · edita da Recorded Future (threat intelligence, gruppo Mastercard)"
+    scheda: "Testata cyber, gruppo Mastercard"
 
   - nome: "BleepingComputer"
     url: "https://www.bleepingcomputer.com/feed/"
     lingua: en
+    priorita: 3
     sezione: cyber
-    scheda: "Sito tecnico indipendente · sicurezza informatica"
+    scheda: "Testata specializzata in cybersecurity"
+
+  - nome: "SecurityWeek"
+    url: "https://www.securityweek.com/feed/"
+    lingua: en
+    priorita: 3
+    sezione: cyber
+    scheda: "Testata specializzata in cybersecurity"
+
+  - nome: "Krebs on Security"
+    url: "https://krebsonsecurity.com/feed/"
+    lingua: en
+    priorita: 3
+    sezione: cyber
+    scheda: "Giornalismo investigativo sulla sicurezza"
 
   - nome: "The Hacker News"
     url: "https://feeds.feedburner.com/TheHackersNews"
     lingua: en
+    priorita: 4
     sezione: cyber
-    scheda: "Sito indipendente · sicurezza informatica · finanziato da pubblicità del settore"
+    scheda: "Testata indipendente sulla sicurezza informatica"
 
   - nome: "War on the Rocks"
     url: "https://warontherocks.com/feed/"
     lingua: en
+    priorita: 3
     sezione: geopolitica
-    scheda: "Analisi su difesa e sicurezza · indipendente (USA) · prospettiva atlantica"
+    scheda: "Analisi indipendente su difesa USA"
 
   - nome: "ScienceDaily"
     url: "https://www.sciencedaily.com/rss/all.xml"
     lingua: en
+    priorita: 3
     sezione: scienza
-    scheda: "Aggregatore di comunicati di università ed enti di ricerca"
+    scheda: "Comunicati di università e ricerca"

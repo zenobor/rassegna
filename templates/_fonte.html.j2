@@ -1,6 +1,6 @@
 <div style="margin-top:9px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;line-height:1.6;letter-spacing:.5px;color:#6b6b6b;">
-  <span style="text-transform:uppercase;letter-spacing:1px;color:#8b1a1a;font-weight:600;">Fonte: {{ a.fonte }}</span>
-  {% if a.altre_fonti %}<span> · ripresa anche da {{ a.altre_fonti | join(', ') }}</span>{% endif %}
+  <span style="text-transform:uppercase;letter-spacing:1px;color:#8b1a1a;font-weight:600;">Fonte: <a href="{{ a.link }}" style="color:#8b1a1a;text-decoration:none;">{{ a.fonte }}</a></span>
+  {% if a.altre_fonti %}<span> · ripresa anche da {% for fonte in a.altre_fonti %}{% if not loop.first %}, {% endif %}<a href="{{ fonte.link }}" style="color:#8b1a1a;text-decoration:none;">{{ fonte.nome }}</a>{% if fonte.scheda %} <span style="font-size:11px;color:#9a9a9a;">({{ fonte.scheda }})</span>{% endif %}{% endfor %}</span>{% endif %}
   {% if a.scheda %}<br><span style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0;color:#6b6b6b;">{{ a.scheda }}</span>{% endif %}
   {% if a.tradotto_da %}<br><span style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0;color:#6b6b6b;">Tradotto con DeepL da {{ a.tradotto_da | upper }}.</span>{% endif %}
 </div>

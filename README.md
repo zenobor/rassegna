@@ -10,6 +10,10 @@ with no character limit. Stories without a useful RSS summary are left out. The 
 not copy full article pages or bypass paywalls, so detail depends on what each publisher
 includes in its feed.
 
+The digest groups similar coverage and favors selected agencies, public broadcasters,
+and official feeds. Grouping is not independent fact-checking: this RSS-based app does
+not perform 20 live searches or verify every claim against primary documents.
+
 <p align="center"><img src="docs/anteprima.png" width="360" alt="Personal Digest Mail email preview"></p>
 
 ## Set it up
@@ -62,10 +66,14 @@ GitHub also runs these tests automatically on every push and pull request.
 - `preferenze.yaml`: topics and delivery schedule. Matching uses article titles and RSS summaries.
 - During setup, choose an article language using an ISO code (`it`, `en`, `fr`, etc.) or `tutte`.
   Articles already in that language stay as published; foreign-language RSS titles and
-  summaries are translated with DeepL before topic matching. `tutte` leaves articles
+  summaries are translated with DeepL before topic matching. Native-language articles
+  are preferred when ranking stories; translated articles remain eligible when they match
+  your topics. `tutte` leaves articles
   untranslated. Add `DEEPL_API_KEY` to your local `.env` and GitHub Secrets. Foreign
   feed text is sent to DeepL and may use your API quota.
-- `config.yaml`: RSS sources, their language, sections, article limits, and look-back period.
+- `config.yaml`: RSS sources, language and priority, ordered sections, article limits, and look-back period.
+- Sections with no matching news are omitted. "In brief" is capped at eight items; each main
+  section can define its own maximum.
 - If a feed does not identify a language, its articles are kept rather than silently discarded.
 - `templates/`: email design.
 - A feed without a usable summary is skipped; unavailable feeds are reported in the Actions log.

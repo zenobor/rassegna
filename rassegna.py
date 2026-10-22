@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import feedparser
@@ -68,9 +69,24 @@ class Articolo:
     immagine: str | None = None
     sezione: str = ""
     nome_sezione: str = ""
-    altre_fonti: list[str] = field(default_factory=list)
+    priorita: int = 10
+    altre_fonti: list[dict[str, str]] = field(default_factory=list)
     lingua: str | None = None
     tradotto_da: str | None = None
+
+    @property
+    def paragrafi_sommario(self) -> list[str]:
+        return [p.strip() for p in self.sommario.split("\n\n") if p.strip()]
+
+    @property
+    def sottotitolo(self) -> str:
+        paragrafi = self.paragrafi_sommario
+        return paragrafi[0] if len(paragrafi) > 1 else ""
+
+    @property
+    def testo_articolo(self) -> str:
+        paragrafi = self.paragrafi_sommario
+        return "\n\n".join(paragrafi[1:] if len(paragrafi) > 1 else paragrafi)
 
     @property
     def parole(self) -> set[str]:
@@ -137,14 +153,26 @@ def compila_parola_chiave(kw: str) -> re.Pattern:
 def immagine_dal_feed(voce) -> str | None:
     for chiave in ("media_content", "media_thumbnail"):
         for m in voce.get(chiave, []) or []:
-            if m.get("url"):
+            if m.get("url") and _url_immagine_valido(m["url"]):
                 return m["url"]
     for l in voce.get("links", []) or []:
-        if l.get("rel") == "enclosure" and str(l.get("type", "")).startswith("image"):
+        if (
+            l.get("rel") == "enclosure"
+            and str(l.get("type", "")).startswith("image")
+            and _url_immagine_valido(l.get("href", ""))
+        ):
             return l.get("href")
     # alcuni feed mettono un <img> dentro il sommario
     m = re.search(r'<img[^>]+src="([^"]+)"', voce.get("summary", "") or "")
-    return m.group(1) if m else None
+    return m.group(1) if m and _url_immagine_valido(m.group(1)) else None
+
+
+def _url_immagine_valido(url: str) -> bool:
+    try:
+        parti = urlsplit(url)
+        return parti.scheme == "https" and bool(parti.netloc)
+    except ValueError:
+        return False
 
 
 def immagine_dalla_pagina(url: str) -> str | None:
@@ -161,7 +189,10 @@ def immagine_dalla_pagina(url: str) -> str | None:
         m = re.search(
             r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']og:image',
             r.text[:200_000], re.IGNORECASE)
-    return html.unescape(m.group(1)) if m else None
+    if not m:
+        return None
+    immagine = html.unescape(m.group(1))
+    return immagine if _url_immagine_valido(immagine) else None
 
 
 def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Articolo]:
@@ -206,6 +237,7 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
             data=data,
             immagine=immagine_dal_feed(v),
             sezione=fonte.get("sezione", "esteri"),
+            priorita=int(fonte.get("priorita", 10)),
             lingua=lingua_articolo(v, dati.feed, fonte),
         ))
     log.info("%-18s %3d articoli", fonte["nome"], len(articoli))
@@ -333,8 +365,20 @@ def raggruppa_doppioni(articoli: list[Articolo], soglia: float = 0.45) -> list[A
 
     risultato = []
     for g in gruppi:
-        capo = max(g, key=lambda x: (x.immagine is not None, len(x.sommario)))
-        capo.altre_fonti = sorted({x.fonte for x in g if x.fonte != capo.fonte})
+        capo = max(
+            g,
+            key=lambda x: (
+                x.tradotto_da is None,
+                -x.priorita,
+                x.immagine is not None,
+                len(x.sommario),
+            ),
+        )
+        fonti = {
+            x.fonte: {"nome": x.fonte, "link": x.link, "scheda": x.scheda}
+            for x in g if x.fonte != capo.fonte
+        }
+        capo.altre_fonti = sorted(fonti.values(), key=lambda fonte: fonte["nome"])
         risultato.append(capo)
     return risultato
 
@@ -572,7 +616,13 @@ def impagina(cfg: dict, articoli: list[Articolo], ora: datetime) -> dict:
     # Prima pagina: notizie riprese da più fonti, poi le più recenti con foto
     ordinati = sorted(
         articoli,
-        key=lambda a: (len(a.altre_fonti), a.immagine is not None, a.data),
+        key=lambda a: (
+            a.tradotto_da is None,
+            len(a.altre_fonti),
+            -a.priorita,
+            a.immagine is not None,
+            a.data,
+        ),
         reverse=True)
     prima = ordinati[: cfg.get("max_prima_pagina", 4)]
     usati = {id(a) for a in prima}
@@ -580,8 +630,12 @@ def impagina(cfg: dict, articoli: list[Articolo], ora: datetime) -> dict:
     sezioni, avanzi = [], []
     for s in cfg["sezioni"]:
         pezzi = [a for a in ordinati if a.sezione == s["id"] and id(a) not in usati]
-        pezzi.sort(key=lambda a: (len(a.altre_fonti), a.data), reverse=True)
-        n = cfg.get("max_per_sezione", 4)
+        pezzi.sort(
+            key=lambda a: (a.tradotto_da is None, len(a.altre_fonti), -a.priorita, a.data),
+            reverse=True,
+        )
+        limite = s.get("max_articoli", cfg.get("max_per_sezione", 4))
+        n = max(0, int(limite))
         if pezzi[:n]:
             sezioni.append({"nome": s["nome"], "articoli": pezzi[:n]})
         avanzi += pezzi[n:]
@@ -590,6 +644,8 @@ def impagina(cfg: dict, articoli: list[Articolo], ora: datetime) -> dict:
     return {
         "testata": cfg.get("testata", "Personal Digest Mail"),
         "sottotitolo": cfg.get("sottotitolo", ""),
+        "lingua_email": cfg.get("lingua_articoli", "it")
+        if cfg.get("lingua_articoli", "it") != "all" else cfg.get("lingua", "it"),
         "data": data_in_italiano(ora).upper(),
         "data_breve": data_in_italiano(ora),
         "numero": (ora.date() - datetime(ora.year, 1, 1).date()).days + 1,
@@ -616,7 +672,8 @@ def testo_semplice(p: dict) -> str:
             if a.tradotto_da:
                 righe.append(f"  Tradotto con DeepL da {a.tradotto_da.upper()}.")
             if a.altre_fonti:
-                righe.append(f"  Ripresa anche da: {', '.join(a.altre_fonti)}")
+                nomi_fonti = ", ".join(fonte["nome"] for fonte in a.altre_fonti)
+                righe.append(f"  Ripresa anche da: {nomi_fonti}")
             righe.append(f"  Leggi la notizia: {a.link}")
         righe.append("")
     if p["in_breve"]:
@@ -625,6 +682,8 @@ def testo_semplice(p: dict) -> str:
             testo = f"- {a.titolo} ({a.fonte})"
             if a.sommario:
                 testo += f" — {a.sommario}"
+            if a.tradotto_da:
+                testo += f" [Tradotto con DeepL da {a.tradotto_da.upper()}]"
             righe.append(f"{testo}\n  {a.link}")
     return "\n".join(righe)
 

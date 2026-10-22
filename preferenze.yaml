@@ -1,5 +1,6 @@
 testata: "Personal Digest Mail"
 lingua_articoli: it
+lingua: it
 fuso_orario: "Europe/Rome"
 giorni_invio:
   - lunedi

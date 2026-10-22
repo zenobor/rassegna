@@ -2,14 +2,17 @@
 - nome: "Agenzia Esempio"
   file_demo: agenzia.xml
   lingua: it
+  priorita: 1
   sezione: politica
   scheda: "Fonte di esempio · proprietà e orientamento descritti qui"
 - nome: "Quotidiano Esempio"
   file_demo: quotidiano.xml
   lingua: it
+  priorita: 2
   sezione: esteri
   scheda: "Fonte di esempio · quotidiano generalista"
 - nome: "Cyber Esempio"
   file_demo: cyber.xml
+  priorita: 3
   sezione: cyber
   scheda: "Fonte di esempio · sito tecnico"
