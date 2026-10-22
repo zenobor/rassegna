@@ -1,12 +1,12 @@
-# La Rassegna
+# Personal Digest Mail
 
-[![Test La Rassegna](https://github.com/zenobor/rassegna/actions/workflows/tests.yml/badge.svg)](https://github.com/zenobor/rassegna/actions/workflows/tests.yml)
+[![Test Personal Digest Mail](https://github.com/zenobor/rassegna/actions/workflows/tests.yml/badge.svg)](https://github.com/zenobor/rassegna/actions/workflows/tests.yml)
 
 **A personal, newspaper-style news digest delivered by email.** Each person forks the
 project, chooses their topics and schedule, and runs their own copy with GitHub Actions.
 There is no shared account or central server.
 
-La Rassegna reads public RSS feeds, groups and deduplicates stories, highlights articles
+Personal Digest Mail reads public RSS feeds, groups and deduplicates stories, highlights articles
 covered by multiple outlets, and sends a responsive HTML email with links to the original
 publishers.
 
@@ -15,7 +15,7 @@ publishers.
 > reproduce full articles. The amount of detail depends on each publisher's feed and
 > terms of use.
 
-<p align="center"><img src="docs/anteprima.png" width="360" alt="La Rassegna email preview"></p>
+<p align="center"><img src="docs/anteprima.png" width="360" alt="Personal Digest Mail email preview"></p>
 
 ## What you need
 

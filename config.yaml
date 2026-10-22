@@ -1,9 +1,9 @@
 # ============================================================
-#  La Rassegna — configurazione
+#  Personal Digest Mail — configuration
 #  Modifica questo file per personalizzare la TUA rassegna.
 # ============================================================
 
-testata: "La Rassegna"
+testata: "Personal Digest Mail"
 sottotitolo: "Politica · Intelligence · Terrorismo · Guerra ibrida · Cyber · Scienza e cultura"
 lingua: "it"
 fuso_orario: "Europe/Rome"

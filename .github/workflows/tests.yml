@@ -1,4 +1,4 @@
-name: Test La Rassegna
+name: Test Personal Digest Mail
 
 on:
   push:

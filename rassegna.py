@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-La Rassegna — rassegna stampa quotidiana in stile giornale, via email.
+Personal Digest Mail — a personal newspaper-style news digest delivered by email.
 
 Legge i feed RSS elencati in config.yaml, raggruppa le notizie per sezione,
 mette in prima pagina quelle riprese da più fonti e invia un'email HTML
@@ -35,7 +35,7 @@ import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 QUI = Path(__file__).resolve().parent
-UA = "Mozilla/5.0 (compatible; LaRassegna/1.0; +https://github.com/)"
+UA = "Mozilla/5.0 (compatible; PersonalDigestMail/1.0; +https://github.com/)"
 log = logging.getLogger("rassegna")
 
 GIORNI = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"]
@@ -308,7 +308,7 @@ def configura(percorso: Path) -> int:
     preferenze = preferenze or {}
 
     print("Configura il tuo giornale. Premi Invio per mantenere il valore proposto.")
-    testata = input(f"Nome della rassegna [{cfg.get('testata', 'La Rassegna')}]: ").strip()
+    testata = input(f"Nome della rassegna [{cfg.get('testata', 'Personal Digest Mail')}]: ").strip()
     if testata:
         cfg["testata"] = testata
 
@@ -402,7 +402,7 @@ def configura(percorso: Path) -> int:
         argomenti_personali or preferenze.get("filtra_argomenti", False)
     )
     preferenze.update({
-        "testata": cfg.get("testata", "La Rassegna"),
+        "testata": cfg.get("testata", "Personal Digest Mail"),
         "fuso_orario": fuso,
         "giorni_invio": giorni,
         "ora_invio": orario,
@@ -461,7 +461,7 @@ def impagina(cfg: dict, articoli: list[Articolo], ora: datetime) -> dict:
 
     avanzi.sort(key=lambda a: a.data, reverse=True)
     return {
-        "testata": cfg.get("testata", "La Rassegna"),
+        "testata": cfg.get("testata", "Personal Digest Mail"),
         "sottotitolo": cfg.get("sottotitolo", ""),
         "data": data_in_italiano(ora).upper(),
         "data_breve": data_in_italiano(ora),

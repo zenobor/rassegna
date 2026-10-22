@@ -1,4 +1,4 @@
-name: Rassegna mattutina
+name: Personal Digest Mail
 
 on:
   schedule:

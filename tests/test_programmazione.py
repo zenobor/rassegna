@@ -145,7 +145,7 @@ class ProgrammazioneTest(unittest.TestCase):
             root = Path(directory)
             config = root / "config.yaml"
             config.write_text(yaml.safe_dump({
-                "testata": "La Rassegna",
+                "testata": "Personal Digest Mail",
                 "fuso_orario": "Europe/Rome",
                 "sezioni": [],
             }), encoding="utf-8")
