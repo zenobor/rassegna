@@ -82,7 +82,7 @@
       <ul style="margin:0;padding-left:22px;font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:#1a1a1a;">
       {% for a in in_breve %}
         <li style="margin:0 0 12px;">
-          <b>{{ a.nome_sezione or "Notizie" }}:</b> {{ a.titolo }}{% if a.sommario %} — {{ a.sommario_breve }}{% endif %}
+          <b>{{ a.nome_sezione or "Notizie" }}:</b> {{ a.titolo }}{% if a.sommario %} — {{ a.sommario }}{% endif %}
           <a href="{{ a.link }}" style="color:#8b1a1a;text-decoration:none;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;"> {{ a.fonte }} →</a>
         </li>
       {% endfor %}

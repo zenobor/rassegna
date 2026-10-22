@@ -5,9 +5,10 @@
 Your own newspaper-style email, built from public RSS feeds. Fork this project, choose
 your topics and schedule, add email credentials, and GitHub Actions sends your digest.
 
-Articles include the title and the best available RSS summary (up to 1,800 characters).
-Stories without a summary are left out. No article scraping, AI-written details, or
-paywall bypass: the detail depends on each publisher's feed.
+Articles include the title and the full summary supplied in the publisher's RSS feed,
+with no character limit. Stories without a useful RSS summary are left out. The app does
+not copy full article pages or bypass paywalls, so detail depends on what each publisher
+includes in its feed.
 
 <p align="center"><img src="docs/anteprima.png" width="360" alt="Personal Digest Mail email preview"></p>
 

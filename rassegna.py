@@ -71,10 +71,6 @@ class Articolo:
     altre_fonti: list[str] = field(default_factory=list)
 
     @property
-    def sommario_breve(self) -> str:
-        return accorcia(self.sommario, 350)
-
-    @property
     def parole(self) -> set[str]:
         testo = re.sub(r"[^\w\s]", " ", self.titolo.lower())
         return {p for p in testo.split() if len(p) > 3 and p not in STOPWORDS}
@@ -92,22 +88,11 @@ def pulisci_html(testo: str) -> str:
     return "\n\n".join(p for p in paragrafi if p)
 
 
-MAX_ESTRATTO_CARATTERI = 1800
-
-
-def accorcia(testo: str, n: int = MAX_ESTRATTO_CARATTERI) -> str:
-    if len(testo) <= n:
-        return testo
-    taglio = testo[:n].rsplit(" ", 1)[0]
-    return taglio.rstrip(",;:.") + "…"
-
-
 def sommario_feed(voce) -> str:
-    """Sceglie l'estratto RSS più ricco, senza recuperare il testo dell'articolo."""
+    """Usa il sommario RSS più ricco, senza copiare il corpo completo dell'articolo."""
     testi = [voce.get("summary", ""), voce.get("description", "")]
-    testi.extend(elemento.get("value", "") for elemento in voce.get("content", []) or [])
     estratti = [pulisci_html(testo) for testo in testi if testo]
-    return accorcia(max(estratti, key=len, default=""))
+    return max(estratti, key=len, default="")
 
 
 def data_in_italiano(d: datetime) -> str:
@@ -517,7 +502,7 @@ def testo_semplice(p: dict) -> str:
         for a in p["in_breve"]:
             testo = f"- {a.titolo} ({a.fonte})"
             if a.sommario:
-                testo += f" — {a.sommario_breve}"
+                testo += f" — {a.sommario}"
             righe.append(f"{testo}\n  {a.link}")
     return "\n".join(righe)
 

@@ -31,16 +31,18 @@ class ProgrammazioneTest(unittest.TestCase):
         cron = cron_programmazione(["lunedi"], "00:30", "Europe/Rome")
         self.assertEqual(cron, ["30 22 * * 0", "30 23 * * 0"])
 
-    def test_estratto_usa_il_testo_piu_ricco_del_feed_e_lo_limita(self):
+    def test_estratto_usa_il_sommario_rss_completo_senza_limite_fisso(self):
+        dettagli = "La testata spiega i fatti, il contesto e le conseguenze. " * 45
         voce = {
             "summary": "<p>Estratto breve.</p>",
-            "content": [{"value": "<p>" + ("Dettagli della notizia. " * 40) + "</p>"}],
+            "description": "<p>" + dettagli + "</p>",
+            "content": [{"value": "<p>Corpo completo non incluso nel digest.</p>"}],
         }
         estratto = sommario_feed(voce)
-        self.assertGreater(len(estratto), len("Estratto breve."))
-        self.assertGreater(len(estratto), 600)
-        self.assertLessEqual(len(estratto), 1800)
+        self.assertEqual(estratto, dettagli.strip())
+        self.assertGreater(len(estratto), 1800)
         self.assertNotIn("<p>", estratto)
+        self.assertNotIn("Corpo completo", estratto)
 
     def test_estratto_preserva_i_paragrafi_rss(self):
         self.assertEqual(
@@ -132,11 +134,12 @@ class ProgrammazioneTest(unittest.TestCase):
             data="GIOVEDÌ 22 OTTOBRE 2026",
             prima=[articolo],
             sezioni=[],
-            in_breve=[],
+            in_breve=[articolo],
             accadde_oggi=[],
         )
         self.assertIn("Notizia di prova", html_email)
         self.assertIn("Estratto completo pubblicato dal feed.", html_email)
+        self.assertGreaterEqual(html_email.count("Estratto completo pubblicato dal feed."), 2)
         self.assertIn("Fonte: Fonte di prova", html_email)
         self.assertIn("https://example.com/articolo", html_email)
         self.assertIn("Leggi alla fonte originale", html_email)
