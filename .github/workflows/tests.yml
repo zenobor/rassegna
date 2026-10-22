@@ -1,0 +1,47 @@
+name: Test La Rassegna
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installa le dipendenze
+        run: python -m pip install -r requirements.txt
+
+      - name: Esegui i test
+        run: python -m unittest discover -s tests -v
+
+      - name: Verifica la compilazione Python
+        run: python -m py_compile rassegna.py
+
+      - name: Genera l'anteprima dimostrativa offline
+        run: python rassegna.py --demo --anteprima anteprima-demo.html
+
+      - name: Verifica la pagina generata
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          pagina = Path("anteprima-demo.html")
+          testo = pagina.read_text(encoding="utf-8")
+          assert pagina.is_file() and pagina.stat().st_size > 1000
+          assert "<html" in testo.lower()
+          assert "ANTEPRIMA DIMOSTRATIVA" in testo
+          assert "Leggi alla fonte originale" in testo
+          print(f"Anteprima valida: {pagina.stat().st_size} byte")
+          PY

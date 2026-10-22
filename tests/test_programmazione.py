@@ -1,4 +1,5 @@
 import unittest
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -21,7 +22,8 @@ class ProgrammazioneTest(unittest.TestCase):
         cfg = {"giorni_invio": ["lunedi"], "ora_invio": "06:45"}
         zona = ZoneInfo("Europe/Rome")
         self.assertTrue(invio_programmato(datetime(2026, 10, 26, 6, 52, tzinfo=zona), cfg))
-        self.assertFalse(invio_programmato(datetime(2026, 10, 26, 7, 0, tzinfo=zona), cfg))
+        self.assertTrue(invio_programmato(datetime(2026, 10, 26, 7, 15, tzinfo=zona), cfg))
+        self.assertFalse(invio_programmato(datetime(2026, 10, 26, 7, 30, tzinfo=zona), cfg))
         self.assertFalse(invio_programmato(datetime(2026, 10, 27, 6, 50, tzinfo=zona), cfg))
 
     def test_mezzanotte_locale_programma_il_giorno_utc_precedente(self):
@@ -47,6 +49,24 @@ class ProgrammazioneTest(unittest.TestCase):
         risultato = classifica(articoli, sezioni, filtra_argomenti=True)
         self.assertEqual([a.titolo for a in risultato], ["Attacco ransomware"])
         self.assertEqual(risultato[0].nome_sezione, "Cybersecurity")
+
+    def test_articoli_senza_parole_chiave_restano_nella_sezione_della_fonte(self):
+        articolo = Articolo(
+            "Notizia internazionale",
+            "",
+            "Un aggiornamento generale.",
+            "Fonte",
+            "",
+            datetime.now(timezone.utc),
+            sezione="esteri",
+        )
+        sezioni = [
+            {"id": "cyber", "nome": "Cybersecurity", "parole_chiave": ["ransomware"]},
+            {"id": "esteri", "nome": "Esteri", "parole_chiave": []},
+        ]
+        risultato = classifica([articolo], sezioni)
+        self.assertEqual(risultato[0].sezione, "esteri")
+        self.assertEqual(risultato[0].nome_sezione, "Esteri")
 
     def test_template_email_mostra_estratti_fonti_e_link_originali(self):
         articolo = Articolo(
@@ -80,6 +100,45 @@ class ProgrammazioneTest(unittest.TestCase):
         self.assertIn("Fonte: Fonte di prova", html_email)
         self.assertIn("https://example.com/articolo", html_email)
         self.assertIn("Leggi alla fonte originale", html_email)
+
+    def test_invio_email_costruisce_messaggio_e_usa_tls(self):
+        ambiente = {
+            "SMTP_USER": "sender@example.com",
+            "SMTP_PASSWORD": "app-password",
+            "MAIL_TO": "first@example.com, second@example.com",
+        }
+        with patch.dict(os.environ, ambiente, clear=True), patch.object(
+            rassegna.smtplib, "SMTP_SSL"
+        ) as smtp_ssl:
+            sessione = smtp_ssl.return_value.__enter__.return_value
+            rassegna.invia("Edizione di prova", "<p>HTML</p>", "Testo")
+
+        smtp_ssl.assert_called_once()
+        sessione.login.assert_called_once_with("sender@example.com", "app-password")
+        messaggio = sessione.send_message.call_args.args[0]
+        self.assertEqual(messaggio["From"], "sender@example.com")
+        self.assertEqual(messaggio["To"], "sender@example.com")
+        self.assertEqual(messaggio["Bcc"], "first@example.com, second@example.com")
+        self.assertEqual(messaggio.get_body(preferencelist=("plain",)).get_content(), "Testo\n")
+        self.assertEqual(messaggio.get_body(preferencelist=("html",)).get_content(), "<p>HTML</p>\n")
+
+    def test_invio_email_usa_starttls_su_porta_alternativa(self):
+        ambiente = {
+            "SMTP_HOST": "smtp.example.com",
+            "SMTP_PORT": "587",
+            "SMTP_USER": "sender@example.com",
+            "SMTP_PASSWORD": "app-password",
+        }
+        with patch.dict(os.environ, ambiente, clear=True), patch.object(
+            rassegna.smtplib, "SMTP"
+        ) as smtp:
+            sessione = smtp.return_value.__enter__.return_value
+            rassegna.invia("Edizione di prova", "<p>HTML</p>", "Testo")
+
+        smtp.assert_called_once_with("smtp.example.com", 587, timeout=30)
+        sessione.starttls.assert_called_once()
+        sessione.login.assert_called_once_with("sender@example.com", "app-password")
+        sessione.send_message.assert_called_once()
 
     def test_configurazione_guidata_salva_preferenze_e_tutela_email(self):
         with TemporaryDirectory() as directory:

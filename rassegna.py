@@ -42,7 +42,7 @@ GIORNI = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato",
 GIORNI_ID = ["lunedi", "martedi", "mercoledi", "giovedi", "venerdi", "sabato", "domenica"]
 MESI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",
         "agosto", "settembre", "ottobre", "novembre", "dicembre"]
-FINESTRA_INVIO_MINUTI = 15
+FINESTRA_INVIO_MINUTI = 45
 
 # Parole troppo comuni per decidere se due titoli parlano della stessa notizia
 STOPWORDS = set("""
@@ -196,13 +196,14 @@ def classifica(
     selezionati = []
     for a in articoli:
         testo = f"{a.titolo} {a.sommario}"
-        corrispondenza = False
+        corrispondenza = None
         for sid, pattern in regole:
             if any(p.search(testo) for p in pattern):
-                a.sezione = sid
-                corrispondenza = True
+                corrispondenza = sid
                 break
-        if not corrispondenza and filtra_argomenti:
+        if corrispondenza is not None:
+            a.sezione = corrispondenza
+        elif filtra_argomenti:
             continue
         if a.sezione not in nomi:
             a.sezione = sezioni[-1]["id"]

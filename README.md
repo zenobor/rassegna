@@ -1,155 +1,181 @@
-# 📰 La Rassegna
+# La Rassegna
 
-**Una rassegna stampa in stile giornale, ogni mattina nella tua email. Gratis, open source, senza server.**
+[![Test La Rassegna](https://github.com/zenobor/rassegna/actions/workflows/tests.yml/badge.svg)](https://github.com/zenobor/rassegna/actions/workflows/tests.yml)
 
-La Rassegna legge i feed RSS di testate che scegli tu, ordina le notizie per sezione
-(politica, intelligence, terrorismo, guerra ibrida, cyber, tecnologia, scienza…),
-mette in prima pagina quelle riprese da più fonti e ti manda un'email impaginata come un
-quotidiano, pensata per il telefono.
+**A personal, newspaper-style news digest delivered by email.** Each person forks the
+project, chooses their topics and schedule, and runs their own copy with GitHub Actions.
+There is no shared account or central server.
 
-Accanto a ogni fonte c'è una piccola **scheda**: chi la possiede, come si finanzia, che orientamento ha.
-Così sai sempre chi ti sta raccontando la notizia.
+La Rassegna reads public RSS feeds, groups and deduplicates stories, highlights articles
+covered by multiple outlets, and sends a responsive HTML email with links to the original
+publishers.
 
-<p align="center"><img src="docs/anteprima.png" width="360" alt="Anteprima della rassegna"></p>
+> **What the email contains:** titles and excerpts made available by each RSS feed (up to
+> 600 characters), not full articles. The digest does not use AI, bypass paywalls, or
+> reproduce full articles. The amount of detail depends on each publisher's feed and
+> terms of use.
 
-*(English: a self-hosted daily news digest. It reads RSS feeds, groups stories by topic, ranks
-stories covered by several outlets on the front page and emails a newspaper-style HTML digest.
-Runs for free on GitHub Actions.)*
+<p align="center"><img src="docs/anteprima.png" width="360" alt="La Rassegna email preview"></p>
 
----
+## What you need
 
-## ✨ Cosa fa
+- A GitHub account and your own fork of this repository.
+- Python 3.12 or newer on your computer for the setup wizard and local previews.
+- An email account that allows SMTP sending. Gmail users need 2-Step Verification and
+  a [Google App Password](https://myaccount.google.com/apppasswords).
 
-- 🗞️ **Impaginazione da giornale**: testata, prima pagina, sezioni, "In breve", "Accadde oggi"
-- 🔁 **Niente doppioni**: la stessa notizia da più testate viene unita ("ripresa anche da…")
-- 🖼️ **Foto** prese dagli articoli stessi
-- 🧭 **Trasparenza sulle fonti**: proprietà e orientamento accanto a ogni articolo
-- ⏰ **Automatica**: gira ogni mattina su GitHub Actions, non serve un computer acceso
-- 🛠️ **Personale**: scegli argomenti, destinatari, giorni e orario
+## Set up your personal newspaper
 
----
+### 1. Fork and clone the repository
 
-## 🚀 Crea la tua rassegna
+Click **Fork** on GitHub. Then clone **your fork** (replace `YOUR-USERNAME`):
 
-1. **Fai il fork** di questo repo: pulsante **Fork** in alto a destra.
-2. Clona il tuo fork sul computer, installa i requisiti e avvia la configurazione guidata:
-
-   ```bash
-   git clone https://github.com/<il-tuo-utente>/rassegna.git
-   cd rassegna
-   pip install -r requirements.txt
-   python rassegna.py --configura
-   ```
-
-   Scegli il nome del giornale, i tuoi argomenti e le relative parole chiave, il fuso orario,
-   i giorni e l'ora. Gli articoli che non corrispondono agli argomenti scelti vengono esclusi.
-   La procedura aggiorna `preferenze.yaml` e la programmazione GitHub Actions.
-   L'indirizzo email viene salvato solo nel file locale `.env`, che non va pubblicato.
-3. Pubblica sul tuo fork le impostazioni generate:
-
-   ```bash
-   git add preferenze.yaml .github/workflows/rassegna.yml
-   git commit -m "Configura la mia rassegna"
-   git push
-   ```
-
-4. **Crea una password per le app di Gmail**
-   (serve la verifica in due passaggi attiva):
-   vai su [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords),
-   crea una password chiamata "Rassegna" e copia le 16 lettere.
-5. Nel tuo fork vai su **Settings → Secrets and variables → Actions → New repository secret**
-   e aggiungi:
-
-   | Nome | Valore |
-   |---|---|
-   | `SMTP_USER` | il tuo indirizzo Gmail |
-   | `SMTP_PASSWORD` | la password per le app (16 lettere) |
-   | `MAIL_TO` | il tuo indirizzo destinatario (più indirizzi separati da virgola, se vuoi) |
-
-6. Vai su **Actions**, abilita i workflow, apri **Rassegna mattutina** e premi **Run workflow** per inviare una prova.
-7. Controlla la posta 📬. Da quel momento riceverai la rassegna nei giorni e all'ora scelti.
-
-> Non usi Gmail? Aggiungi anche `SMTP_HOST` e `SMTP_PORT` del tuo provider
-> (es. Outlook: `smtp-mail.outlook.com` e `587`).
-> L'indirizzo destinatario e le credenziali SMTP vanno inseriti nei **Secrets** di GitHub,
-> mai in `config.yaml` o `preferenze.yaml`.
-
----
-
-## 🎛️ Personalizzala
-
-La configurazione personale è in **`preferenze.yaml`**:
-
-- `testata` – il nome del tuo giornale
-- `giorni_invio` e `ora_invio` – giorni della settimana e ora locale
-- `fuso_orario` – nome IANA, ad esempio `Europe/Rome`
-- `sezioni` – argomenti personalizzati e parole chiave; sono salvati solo nel tuo fork
-  e gli articoli fuori tema vengono filtrati
-
-Puoi rigenerare questi valori in qualsiasi momento con `python rassegna.py --configura`.
-Per intervenire manualmente, modifica `preferenze.yaml` e la sezione `schedule` di
-`.github/workflows/rassegna.yml`; la procedura guidata aggiorna entrambi e gestisce l'ora
-legale/solare. GitHub può ritardare l'avvio del workflow di qualche minuto.
-
-Le fonti RSS e le impostazioni generali restano in **`config.yaml`**:
-
-- **`fonti`** – aggiungi o togli feed RSS e scrivi la loro scheda
-- **`sezioni`** – argomenti predefiniti, usati se non ne imposti di personali
-- **`max_per_sezione`**, **`ore_indietro`**, **`accadde_oggi`**…
-
-> Le schede delle fonti già presenti sono indicative: verificale e adattale al tuo giudizio.
-> La rassegna non usa AI: mostra il testo breve reso disponibile da ciascun feed RSS (fino a
-> 600 caratteri) e collega sempre all'articolo originale. La quantità di dettagli dipende
-> dalla testata; non vengono scaricati o ripubblicati gli articoli integrali.
-> Ogni notizia è presentata con sezione, titolo, estratto, fonte e collegamento originale.
-> Le categorie impostate nella configurazione guidata sono personali al tuo fork.
-
----
-
-## 💻 Provarla sul tuo computer
-
-```bash
-git clone https://github.com/<il-tuo-utente>/rassegna.git
+```powershell
+git clone https://github.com/YOUR-USERNAME/rassegna.git
 cd rassegna
-pip install -r requirements.txt
-
-# Configura giornale, argomenti, giorni, orario e destinatario
-python rassegna.py --configura
-
-# Anteprima con notizie di esempio, funziona anche offline
-python rassegna.py --demo --anteprima
-
-# Anteprima con le notizie vere di oggi (apri anteprima.html nel browser)
-python rassegna.py --anteprima
-
-# Invio dell'email: copia .env.example in .env, compilalo e poi
-python rassegna.py --invia
 ```
 
----
+### 2. Install dependencies and choose your topics
 
-## 🧩 Come funziona
+On Windows PowerShell:
 
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe rassegna.py --configura
 ```
-feed RSS ──► lettura e filtro ultime 24h ──► sezione per parole chiave
-        ──► unione doppioni ──► prima pagina (più fonti = più importante)
-        ──► foto da og:image ──► template HTML ──► email (SMTP)
+
+The guided setup asks for the newspaper name, time zone, delivery days and local time,
+topics, and an optional email address. Enter topics one per line in this format:
+
+```text
+Cybersecurity | ransomware, data breach, phishing
+Space | NASA, satellite, astronomy
 ```
 
-Tutto è in `rassegna.py` (circa 400 righe, commentate in italiano). Il layout è in
-`templates/email.html.j2`.
+Press Enter on an empty topic line to finish; press Enter on the first line to keep the
+existing topics. With custom topics enabled, a story is included when its title or RSS
+excerpt matches at least one keyword. Add useful alternatives and spelling variants;
+sections are checked in order, so put more specific topics first.
 
----
+The wizard writes:
 
-## 🤝 Contribuire
+- `preferenze.yaml`: your newspaper name, topics and schedule. These preferences are
+  visible in your fork.
+- `.github/workflows/rassegna.yml`: the GitHub Actions schedule, including daylight-saving
+  changes for the selected time zone.
+- `.env`: only the optional local recipient address. This file is ignored by Git and must
+  never be committed.
 
-Idee, nuove fonti e correzioni alle schede sono benvenute: apri una *issue* o una *pull request*.
+### 3. Save your preferences on your fork
 
-## 📄 Licenza
+The wizard runs locally, so publish its generated schedule and preferences:
 
-MIT © 2026 Zeno Borgnino. I contenuti delle notizie appartengono alle rispettive testate:
-la rassegna mostra titoli e brevi estratti dei feed RSS e rimanda alla fonte originale,
-senza ripubblicare l'articolo integrale né aggirare paywall o limitazioni di accesso.
-La disponibilità pubblica di un feed non sostituisce le condizioni d'uso della testata:
-prima di aggiungere una fonte, verifica che i suoi termini consentano l'uso previsto.
-Le immagini sono caricate dai siti originali e restano soggette ai relativi diritti.
+```powershell
+git add preferenze.yaml .github/workflows/rassegna.yml
+git commit -m "Configure my newspaper"
+git push
+```
+
+### 4. Add email credentials to GitHub
+
+In your fork, open **Settings → Secrets and variables → Actions → New repository secret**
+and add:
+
+| Secret | Value |
+| --- | --- |
+| `SMTP_USER` | The account used to send the email (for Gmail, your Gmail address) |
+| `SMTP_PASSWORD` | The account's SMTP password; for Gmail, use an App Password |
+| `MAIL_TO` | Your recipient address; multiple addresses can be comma-separated |
+
+For a non-Gmail provider, also add `SMTP_HOST` and `SMTP_PORT` using that provider's
+documented SMTP settings (for example, Outlook uses `smtp-mail.outlook.com` and port
+`587`). The default is Gmail over TLS on port `465`.
+
+Never put SMTP passwords or email addresses in `config.yaml`, `preferenze.yaml`, or a
+public commit. If `MAIL_TO` is omitted, mail is sent to `SMTP_USER`.
+
+### 5. Send a test and enable automatic delivery
+
+In your fork, open **Actions**, enable workflows if GitHub asks, select **Rassegna
+mattutina**, then click **Run workflow**. Check the run and your inbox. Scheduled delivery
+uses the days and local time you chose. GitHub may start a scheduled run a few minutes
+late; the program allows for delays of up to 45 minutes.
+
+The repository also runs its automated tests on every push and pull request. Scheduled
+email sending is skipped with a notice until `SMTP_USER` and `SMTP_PASSWORD` are set.
+
+## Preview and test locally
+
+These commands do not send any email:
+
+```powershell
+# Offline sample with fictional stories; writes anteprima-demo.html
+.\.venv\Scripts\python.exe rassegna.py --demo --anteprima anteprima-demo.html
+
+# Live RSS preview; requires an internet connection
+.\.venv\Scripts\python.exe rassegna.py --anteprima
+```
+
+Open the generated HTML file in a browser. The demo stories and their links are fictional;
+the demo banner labels them clearly. The live preview uses the feeds in `config.yaml`.
+
+Run the automated checks:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m py_compile rassegna.py
+```
+
+To send an actual email from your own computer, copy `.env.example` to `.env`, enter your
+SMTP credentials and recipient, then run:
+
+```powershell
+.\.venv\Scripts\python.exe rassegna.py --invia
+```
+
+This sends real email; use the preview commands above if you only want to inspect the
+layout.
+
+## Customize sources and layout
+
+- `config.yaml`: RSS sources, default topic sections, look-back period, and article limits.
+- `preferenze.yaml`: your newspaper name, personal topics, time zone, days, and delivery
+  time.
+- `templates/email.html.j2` and `templates/_fonte.html.j2`: the HTML email layout.
+- `demo/`: fictional RSS feeds used for the offline preview.
+
+To add a source, add its public RSS feed URL, a default section, and an accurate source
+description to `config.yaml`. Verify the publisher's terms before using its feed. The
+program links readers to original stories; it does not store or republish their full text.
+
+## Troubleshooting
+
+- **No email arrived:** check the Actions run log and spam folder. Confirm `SMTP_USER`,
+  `SMTP_PASSWORD`, and `MAIL_TO` are spelled correctly and the provider allows SMTP.
+- **“Email non configurata” in Actions:** add `SMTP_USER` and `SMTP_PASSWORD` as repository
+  Secrets, then run the workflow again.
+- **“Nessuna notizia corrisponde…”:** your topic keywords may be too specific or the feeds
+  may not contain a matching story. Add synonyms or review the RSS sources.
+- **A feed is unavailable:** the run log identifies unreachable feeds. That feed is skipped;
+  the digest can still be sent if other feeds provide stories. RSS availability depends on
+  each publisher; try its current public feed URL. A feed with no recent articles is normal.
+- **No automatic runs:** scheduled workflows run from the repository's default branch.
+  Confirm the workflow is enabled and that your latest preferences and workflow were
+  pushed to your fork.
+
+## How it works
+
+```text
+RSS feeds → date filter → topic matching → duplicate grouping → newspaper HTML → SMTP email
+```
+
+The app is a small Python script. GitHub Actions runs it on GitHub's hosted runner, so
+your computer does not need to be on at delivery time. Each fork has its own settings and
+email secrets.
+
+## License
+
+MIT © 2026 Zeno Borgnino. Feed excerpts, images, and linked articles remain subject to the
+respective publishers' rights and terms. Use only feeds and excerpts in a way permitted
+by those terms.
