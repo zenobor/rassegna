@@ -12,9 +12,9 @@ fuso_orario: "Europe/Rome"
 ore_indietro: 26
 
 # Numero massimo di articoli per sezione e in prima pagina
-max_per_sezione: 4
+max_per_sezione: 6
 max_prima_pagina: 4
-max_in_breve: 10
+max_in_breve: 30
 
 # Cerca l'immagine dentro la pagina dell'articolo se il feed non la fornisce
 # (più lento, ma la rassegna è più bella)

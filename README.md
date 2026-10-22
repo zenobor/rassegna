@@ -41,8 +41,9 @@ Runs for free on GitHub Actions.)*
    python rassegna.py --configura
    ```
 
-   Scegli il nome del giornale, gli argomenti e le relative parole chiave, il fuso orario,
-   i giorni e l'ora. La procedura aggiorna `preferenze.yaml` e la programmazione GitHub Actions.
+   Scegli il nome del giornale, i tuoi argomenti e le relative parole chiave, il fuso orario,
+   i giorni e l'ora. Gli articoli che non corrispondono agli argomenti scelti vengono esclusi.
+   La procedura aggiorna `preferenze.yaml` e la programmazione GitHub Actions.
    L'indirizzo email viene salvato solo nel file locale `.env`, che non va pubblicato.
 3. Pubblica sul tuo fork le impostazioni generate:
 
@@ -82,7 +83,8 @@ La configurazione personale è in **`preferenze.yaml`**:
 - `testata` – il nome del tuo giornale
 - `giorni_invio` e `ora_invio` – giorni della settimana e ora locale
 - `fuso_orario` – nome IANA, ad esempio `Europe/Rome`
-- `sezioni` – argomenti personalizzati e parole chiave (se impostati)
+- `sezioni` – argomenti personalizzati e parole chiave; sono salvati solo nel tuo fork
+  e gli articoli fuori tema vengono filtrati
 
 Puoi rigenerare questi valori in qualsiasi momento con `python rassegna.py --configura`.
 Per intervenire manualmente, modifica `preferenze.yaml` e la sezione `schedule` di
@@ -96,6 +98,9 @@ Le fonti RSS e le impostazioni generali restano in **`config.yaml`**:
 - **`max_per_sezione`**, **`ore_indietro`**, **`accadde_oggi`**…
 
 > Le schede delle fonti già presenti sono indicative: verificale e adattale al tuo giudizio.
+> La rassegna non usa AI: mostra il testo breve reso disponibile da ciascun feed RSS (fino a
+> 600 caratteri) e collega sempre all'articolo originale. La quantità di dettagli dipende
+> dalla testata; non vengono scaricati o ripubblicati gli articoli integrali.
 
 ---
 

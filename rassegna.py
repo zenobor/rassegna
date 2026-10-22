@@ -67,6 +67,7 @@ class Articolo:
     data: datetime
     immagine: str | None = None
     sezione: str = ""
+    nome_sezione: str = ""
     altre_fonti: list[str] = field(default_factory=list)
 
     @property
@@ -184,18 +185,30 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
     return articoli
 
 
-def classifica(articoli: list[Articolo], sezioni: list[dict]) -> None:
+def classifica(
+    articoli: list[Articolo],
+    sezioni: list[dict],
+    filtra_argomenti: bool = False,
+) -> list[Articolo]:
     regole = [(s["id"], [compila_parola_chiave(k) for k in s.get("parole_chiave", [])])
               for s in sezioni]
-    validi = {s["id"] for s in sezioni}
+    nomi = {s["id"]: s["nome"] for s in sezioni}
+    selezionati = []
     for a in articoli:
         testo = f"{a.titolo} {a.sommario}"
+        corrispondenza = False
         for sid, pattern in regole:
             if any(p.search(testo) for p in pattern):
                 a.sezione = sid
+                corrispondenza = True
                 break
-        if a.sezione not in validi:
+        if not corrispondenza and filtra_argomenti:
+            continue
+        if a.sezione not in nomi:
             a.sezione = sezioni[-1]["id"]
+        a.nome_sezione = nomi[a.sezione]
+        selezionati.append(a)
+    return selezionati
 
 
 def raggruppa_doppioni(articoli: list[Articolo], soglia: float = 0.45) -> list[Articolo]:
@@ -384,6 +397,9 @@ def configura(percorso: Path) -> int:
         preferenze["sezioni"] = sezioni
     if argomenti_personali:
         preferenze["sottotitolo"] = " · ".join(s["nome"] for s in sezioni)
+    preferenze["filtra_argomenti"] = (
+        argomenti_personali or preferenze.get("filtra_argomenti", False)
+    )
     preferenze.update({
         "testata": cfg.get("testata", "La Rassegna"),
         "fuso_orario": fuso,
@@ -451,7 +467,7 @@ def impagina(cfg: dict, articoli: list[Articolo], ora: datetime) -> dict:
         "numero": (ora.date() - datetime(ora.year, 1, 1).date()).days + 1,
         "prima": prima,
         "sezioni": sezioni,
-        "in_breve": avanzi[: cfg.get("max_in_breve", 10)],
+        "in_breve": avanzi[: cfg.get("max_in_breve", 30)],
         "accadde_oggi": accadde_oggi(ora, cfg.get("lingua", "it")) if cfg.get("accadde_oggi") else [],
         "fonti": cfg["fonti"],
     }
@@ -464,11 +480,16 @@ def testo_semplice(p: dict) -> str:
     for nome, arts in blocchi:
         righe.append(nome)
         for a in arts:
-            righe += [f"- {a.titolo} ({a.fonte})", f"  {a.link}"]
+            if a.nome_sezione:
+                righe.append(f"[{a.nome_sezione}]")
+            righe.append(f"- {a.titolo} ({a.fonte})")
+            if a.sommario:
+                righe.append(f"  {a.sommario}")
+            righe.append(f"  Leggi la notizia: {a.link}")
         righe.append("")
     if p["in_breve"]:
         righe.append("IN BREVE")
-        righe += [f"- {a.titolo} ({a.fonte})" for a in p["in_breve"]]
+        righe += [f"- {a.titolo} ({a.fonte}) — {a.link}" for a in p["in_breve"]]
     return "\n".join(righe)
 
 
@@ -558,9 +579,13 @@ def main() -> int:
         log.error("Nessuna notizia trovata: controlla i feed in config.yaml")
         return 1
 
-    classifica(articoli, cfg["sezioni"])
+    articoli = classifica(articoli, cfg["sezioni"], cfg.get("filtra_argomenti", False))
+    if not articoli:
+        log.error("Nessuna notizia corrisponde agli argomenti scelti nei feed configurati.")
+        return 1
     articoli = raggruppa_doppioni(articoli)
     pagina = impagina(cfg, articoli, ora)
+    pagina["demo"] = args.demo
 
     if cfg.get("cerca_immagini_nelle_pagine"):
         in_vista = pagina["prima"] + [a for s in pagina["sezioni"] for a in s["articoli"]]

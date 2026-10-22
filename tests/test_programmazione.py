@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 import yaml
 
 import rassegna
-from rassegna import cron_programmazione, invio_programmato, sommario_feed
+from rassegna import Articolo, classifica, cron_programmazione, invio_programmato, sommario_feed
 
 
 class ProgrammazioneTest(unittest.TestCase):
@@ -36,6 +36,16 @@ class ProgrammazioneTest(unittest.TestCase):
         self.assertGreater(len(estratto), len("Estratto breve."))
         self.assertLessEqual(len(estratto), 600)
         self.assertNotIn("<p>", estratto)
+
+    def test_argomenti_personali_escludono_le_notizie_fuori_tema(self):
+        articoli = [
+            Articolo("Attacco ransomware", "", "Servizi interrotti", "Fonte", "", datetime.now(timezone.utc)),
+            Articolo("Elezioni comunali", "", "Nuova giunta", "Fonte", "", datetime.now(timezone.utc)),
+        ]
+        sezioni = [{"id": "cyber", "nome": "Cybersecurity", "parole_chiave": ["ransomware"]}]
+        risultato = classifica(articoli, sezioni, filtra_argomenti=True)
+        self.assertEqual([a.titolo for a in risultato], ["Attacco ransomware"])
+        self.assertEqual(risultato[0].nome_sezione, "Cybersecurity")
 
     def test_configurazione_guidata_salva_preferenze_e_tutela_email(self):
         with TemporaryDirectory() as directory:
@@ -71,6 +81,7 @@ class ProgrammazioneTest(unittest.TestCase):
             self.assertEqual(preferenze["giorni_invio"], ["lunedi", "mercoledi"])
             self.assertEqual(preferenze["sezioni"][0]["parole_chiave"], ["malware", "ransomware"])
             self.assertEqual(preferenze["sottotitolo"], "Cyber")
+            self.assertTrue(preferenze["filtra_argomenti"])
             self.assertNotIn("persona@example.com", (root / "preferenze.yaml").read_text(encoding="utf-8"))
             self.assertIn("MAIL_TO=persona@example.com", (root / ".env").read_text(encoding="utf-8"))
             self.assertEqual(rassegna.carica_configurazione(config)["testata"], "Il mio giornale")

@@ -9,16 +9,21 @@
 <style>
   body { margin:0; padding:0; background:#f1ede4; }
   .foglio { max-width:640px; margin:0 auto; background:#fffdf8; color:#1b1b1b; }
-  .testo, .testo p { font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif; font-size:16px; line-height:1.5; }
+  .testo, .testo p { font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif; font-size:17px; line-height:1.6; }
   .serif { font-family: "Playfair Display", Georgia, "Times New Roman", serif; }
   .corsivo { font-family: "Libre Baskerville", Georgia, "Times New Roman", serif; font-style:italic; }
+  .occhiello { font-family:Calibri, Carlito, "Segoe UI", Arial, sans-serif; color:#9b1c1c; font-size:12px; font-weight:bold; letter-spacing:1.2px; text-transform:uppercase; }
   a { color:inherit; text-decoration:none; }
   img { border:0; display:block; max-width:100%; height:auto; }
-  @media (max-width:480px) { .pad { padding-left:16px !important; padding-right:16px !important; } .titolo-grande { font-size:24px !important; } }
+  @media (max-width:480px) { .pad { padding-left:16px !important; padding-right:16px !important; } .titolo-grande { font-size:26px !important; } }
 </style>
 </head>
 <body>
 <div class="foglio">
+
+  {% if demo %}
+  <div style="padding:8px 16px; background:#fff1d7; color:#6f4b00; text-align:center; font-family:Calibri, Carlito, 'Segoe UI', Arial, sans-serif; font-size:12px; font-weight:bold; letter-spacing:1px;">ANTEPRIMA DIMOSTRATIVA · NOTIZIE DI FANTASIA</div>
+  {% endif %}
 
   <!-- Testata -->
   <div class="pad" style="padding:28px 28px 0; text-align:center;">
@@ -39,9 +44,11 @@
           <img src="{{ a.immagine }}" alt="" width="584" style="width:100%; margin-bottom:10px;">
           <div class="corsivo" style="font-size:11px; color:#8a8172; margin:-6px 0 8px;">Foto: {{ a.fonte }}</div>
         {% endif %}
+        <div class="occhiello" style="margin-bottom:5px;">{{ a.nome_sezione or "In evidenza" }}</div>
         <div class="serif {% if grande %}titolo-grande{% endif %}" style="font-size:{{ '30px' if grande else '21px' }}; font-weight:{{ 900 if grande else 700 }}; line-height:1.2; margin-bottom:6px;">{{ a.titolo }}</div>
-        {% if a.sommario %}<div class="testo" style="color:#33302b;">{{ a.sommario }}</div>{% endif %}
+        {% if a.sommario %}<div class="testo" style="color:#33302b; margin-top:8px;">{{ a.sommario }}</div>{% endif %}
         {% include "_fonte.html.j2" %}
+        <div style="margin-top:8px; color:#9b1c1c; font-family:Calibri, Carlito, 'Segoe UI', Arial, sans-serif; font-size:13px; font-weight:bold;">Leggi la notizia completa →</div>
       </a>
       {% if not loop.last %}<div style="border-top:1px solid #d9d2c3; margin:0 0 18px;"></div>{% endif %}
     {% endfor %}
@@ -60,8 +67,9 @@
           <img src="{{ a.immagine }}" alt="" width="584" style="width:100%; margin-bottom:8px;">
         {% endif %}
         <div class="serif" style="font-size:19px; font-weight:700; line-height:1.25; margin-bottom:4px;">{{ a.titolo }}</div>
-        {% if a.sommario %}<div class="testo" style="color:#33302b; font-size:15px;">{{ a.sommario }}</div>{% endif %}
+        {% if a.sommario %}<div class="testo" style="color:#33302b; margin-top:7px;">{{ a.sommario }}</div>{% endif %}
         {% include "_fonte.html.j2" %}
+        <div style="margin-top:7px; color:#9b1c1c; font-family:Calibri, Carlito, 'Segoe UI', Arial, sans-serif; font-size:13px; font-weight:bold;">Leggi la notizia completa →</div>
       </a>
     {% endfor %}
   </div>
@@ -100,7 +108,7 @@
       {% for f in fonti %}
         <div class="testo" style="font-size:12px; line-height:1.4; color:#6b6355; margin-bottom:3px;"><b style="color:#1b1b1b;">{{ f.nome }}</b> — {{ f.scheda }}</div>
       {% endfor %}
-      <div class="corsivo" style="font-size:11px; color:#8a8172; margin-top:12px;">Titoli e sommari dai feed RSS delle testate; ogni articolo rimanda alla fonte originale. Generata con La Rassegna (open source).</div>
+      <div class="corsivo" style="font-size:11px; color:#8a8172; margin-top:12px;">Titoli e brevi estratti pubblicati nei feed RSS; ogni articolo rimanda alla fonte originale per leggere il testo completo. Gli argomenti sono configurabili nella tua copia di La Rassegna.</div>
     </div>
   </div>
 
