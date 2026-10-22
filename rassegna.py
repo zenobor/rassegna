@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Personal Digest Mail — a personal newspaper-style news digest delivered by email.
+La Rassegna — una rassegna stampa italiana in stile giornale, ricevuta per email.
 
-Legge i feed RSS elencati in config.yaml, raggruppa le notizie per sezione,
-mette in prima pagina quelle riprese da più fonti e invia un'email HTML
-pensata per essere letta dal telefono.
+Legge i feed RSS delle testate italiane elencate in config.yaml, tiene solo gli
+argomenti scelti, mette in prima pagina le notizie riprese da più fonti e invia
+un'email HTML pensata per essere letta dal telefono.
 
 Uso:
-    python rassegna.py --configura              # configura argomenti e orario
+    python rassegna.py --configura              # scegli argomenti, giorni e ora
     python rassegna.py --anteprima                # crea anteprima.html, non invia nulla
     python rassegna.py --invia                    # crea e invia l'email
     python rassegna.py --demo --anteprima         # prova senza internet (dati di esempio)
@@ -15,20 +15,22 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import email.utils
 import html
+import json
 import logging
 import os
 import re
 import smtplib
 import ssl
 import sys
-import unicodedata
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
 from urllib.parse import urlsplit
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 import feedparser
 import requests
@@ -36,22 +38,31 @@ import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 QUI = Path(__file__).resolve().parent
-UA = "Mozilla/5.0 (compatible; PersonalDigestMail/1.0; +https://github.com/)"
+UA = "Mozilla/5.0 (compatible; LaRassegna/1.0; +https://github.com/)"
+# Wikipedia limita gli user agent generici (errore 429): vuole un nome e un indirizzo.
+UA_WIKIPEDIA = "LaRassegna/1.0 (https://github.com/zenobor/rassegna)"
+FUSO = ZoneInfo("Europe/Rome")
 log = logging.getLogger("rassegna")
 
 GIORNI = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"]
-GIORNI_ID = ["lunedi", "martedi", "mercoledi", "giovedi", "venerdi", "sabato", "domenica"]
 MESI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",
         "agosto", "settembre", "ottobre", "novembre", "dicembre"]
-FINESTRA_INVIO_MINUTI = 45
+
+# Le scelte possibili: le stesse nel modulo su GitHub e in --configura.
+OPZIONI_GIORNI = {
+    "Dal lunedì al venerdì": [0, 1, 2, 3, 4],
+    "Tutti i giorni": [0, 1, 2, 3, 4, 5, 6],
+    "Solo sabato e domenica": [5, 6],
+}
+ORARI = [f"{ora:02d}:00" for ora in range(5, 23)]
+# Il workflow parte qualche minuto prima dell'ora scelta, così l'email arriva puntuale.
+ANTICIPO_MINUTI = 5
 
 # Parole troppo comuni per decidere se due titoli parlano della stessa notizia
 STOPWORDS = set("""
 il lo la i gli le un uno una di a da in con su per tra fra e o ma che chi non si
 del dello della dei degli delle al allo alla ai agli alle dal dalla dai dalle nel
 nella nei nelle sul sulla sui sulle è sono ha hanno come dopo anche più oggi
-the a an of to in on for and or but with from by at is are was were has have
-after over new says said will be as it its this that
 """.split())
 
 
@@ -71,8 +82,6 @@ class Articolo:
     nome_sezione: str = ""
     priorita: int = 10
     altre_fonti: list[dict[str, str]] = field(default_factory=list)
-    lingua: str | None = None
-    tradotto_da: str | None = None
 
     @property
     def paragrafi_sommario(self) -> list[str]:
@@ -87,6 +96,11 @@ class Articolo:
     def testo_articolo(self) -> str:
         paragrafi = self.paragrafi_sommario
         return "\n\n".join(paragrafi[1:] if len(paragrafi) > 1 else paragrafi)
+
+    @property
+    def ricco(self) -> bool:
+        """Il feed offre un riassunto vero, non solo una riga."""
+        return len(self.sommario) >= 200
 
     @property
     def parole(self) -> set[str]:
@@ -113,27 +127,23 @@ def sommario_feed(voce) -> str:
     return max(estratti, key=len, default="")
 
 
-def codice_lingua(valore: str | None) -> str | None:
-    if not valore:
+_MESI_RSS = {"gen": "Jan", "feb": "Feb", "mar": "Mar", "apr": "Apr", "mag": "May",
+             "giu": "Jun", "lug": "Jul", "ago": "Aug", "set": "Sep", "ott": "Oct",
+             "nov": "Nov", "dic": "Dec"}
+
+
+def data_rss_italiana(testo: str):
+    """Legge date RSS scritte in italiano, es. 'gio, 22 ott 2026 17:24:57 GMT'."""
+    m = re.match(r"^\s*(?:[^\W\d]+\.?,\s*)?(\d{1,2})\s+([^\W\d]{3})[^\W\d]*\.?\s+(\d{4}\s+.+)$", testo)
+    if not m or m.group(2).lower() not in _MESI_RSS:
         return None
-    m = re.match(r"^\s*([a-z]{2,3})(?:[-_].*)?\s*$", str(valore), re.IGNORECASE)
-    return m.group(1).lower() if m else None
-
-
-def lingua_articolo(voce, feed, fonte: dict) -> str | None:
-    contenuti = voce.get("content", []) or []
-    metadati_voce = (
-        voce.get("language"),
-        voce.get("dc_language"),
-        voce.get("content_language"),
-        contenuti[0].get("language") if contenuti else None,
+    analizzata = email.utils.parsedate_tz(
+        f"{m.group(1)} {_MESI_RSS[m.group(2).lower()]} {m.group(3)}"
     )
-    metadati_feed = (feed.get("language"), feed.get("dc_language"))
-    for valore in (*metadati_voce, *metadati_feed, fonte.get("lingua")):
-        lingua = codice_lingua(valore)
-        if lingua:
-            return lingua
-    return None
+    return time.gmtime(email.utils.mktime_tz(analizzata)) if analizzata else None
+
+
+feedparser.registerDateHandler(data_rss_italiana)
 
 
 def data_in_italiano(d: datetime) -> str:
@@ -211,10 +221,12 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
         dati = feedparser.parse(r.content)
 
     articoli = []
+    senza_data = 0
     senza_estratto_informativo = 0
     for v in dati.entries:
         t = v.get("published_parsed") or v.get("updated_parsed")
         if not t:
+            senza_data += 1
             continue
         data = datetime(*t[:6], tzinfo=timezone.utc)
         if data < dal:
@@ -236,122 +248,42 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
             scheda=fonte.get("scheda", ""),
             data=data,
             immagine=immagine_dal_feed(v),
-            sezione=fonte.get("sezione", "esteri"),
+            sezione=fonte.get("argomento", "generale"),
             priorita=int(fonte.get("priorita", 10)),
-            lingua=lingua_articolo(v, dati.feed, fonte),
         ))
-    log.info("%-18s %3d articoli", fonte["nome"], len(articoli))
+    log.info("%-26s %3d notizie", fonte["nome"], len(articoli))
     if senza_estratto_informativo:
-        log.info(
-            "%s articoli senza estratto informativo ignorati: %d",
-            fonte["nome"],
-            senza_estratto_informativo,
-        )
+        log.info("%s: %d notizie senza riassunto ignorate", fonte["nome"], senza_estratto_informativo)
+    if senza_data:
+        log.warning("%s: %d notizie senza data leggibile ignorate", fonte["nome"], senza_data)
     return articoli
 
 
-def traduci_articoli(articoli: list[Articolo], lingua_scelta: str) -> list[Articolo]:
-    lingua_scelta = normalizza_lingua(lingua_scelta)
-    if lingua_scelta == "all":
-        return articoli
-    stranieri = [a for a in articoli if a.lingua and a.lingua != lingua_scelta]
-    senza_metadati = sum(a.lingua is None for a in articoli)
-    if senza_metadati:
-        log.info(
-            "Lingua non dichiarata per %d articoli: inclusi senza traduzione.",
-            senza_metadati,
-        )
-    if not stranieri:
-        return articoli
+def classifica(articoli: list[Articolo], argomenti: list[dict], scelti: list[str]) -> list[Articolo]:
+    """Assegna ogni notizia a un argomento e tiene solo quelli scelti.
 
-    api_key = os.environ.get("DEEPL_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "Sono presenti articoli in altre lingue. Configura DEEPL_API_KEY nei Secrets "
-            "di GitHub o nel file .env per tradurli."
-        )
-
-    host = "api-free.deepl.com" if api_key.endswith(":fx") else "api.deepl.com"
-    url = f"https://{host}/v2/translate"
-    elementi = []
-    for articolo in stranieri:
-        elementi.extend(((articolo, "titolo", articolo.titolo), (articolo, "sommario", articolo.sommario)))
-
-    indice = 0
-    tradotti = 0
-    while indice < len(elementi):
-        gruppo = []
-        byte_gruppo = 0
-        while indice < len(elementi) and len(gruppo) < 50:
-            articolo, campo, testo = elementi[indice]
-            dimensione = len(testo.encode("utf-8"))
-            if dimensione > 120_000:
-                raise ValueError(
-                    f"Testo troppo lungo per DeepL nell'articolo: {articolo.titolo}"
-                )
-            if gruppo and byte_gruppo + dimensione > 120_000:
-                break
-            gruppo.append((articolo, campo, testo))
-            byte_gruppo += dimensione
-            indice += 1
-
-        risposta = requests.post(
-            url,
-            headers={"Authorization": f"DeepL-Auth-Key {api_key}"},
-            data={
-                "text": [testo for _, _, testo in gruppo],
-                "target_lang": lingua_scelta.upper(),
-                "preserve_formatting": "1",
-            },
-            timeout=30,
-        )
-        risposta.raise_for_status()
-        traduzioni = risposta.json().get("translations", [])
-        if len(traduzioni) != len(gruppo):
-            raise ValueError("DeepL ha restituito un numero inatteso di traduzioni.")
-        for (articolo, campo, _), risultato in zip(gruppo, traduzioni):
-            if campo == "titolo":
-                articolo.titolo = risultato["text"]
-                articolo.tradotto_da = articolo.lingua
-            else:
-                articolo.sommario = risultato["text"]
-            articolo.lingua = lingua_scelta
-            tradotti += campo == "titolo"
-
-    log.info("%d articoli tradotti con DeepL in %s.", tradotti, lingua_scelta)
-    return articoli
-
-
-def classifica(
-    articoli: list[Articolo],
-    sezioni: list[dict],
-    filtra_argomenti: bool = False,
-) -> list[Articolo]:
-    regole = [(s["id"], [compila_parola_chiave(k) for k in s.get("parole_chiave", [])])
-              for s in sezioni]
-    nomi = {s["id"]: s["nome"] for s in sezioni}
+    Le notizie dei feed tematici (es. ANSA Sport) restano nel loro argomento;
+    quelle dei feed generali vanno nel primo argomento di cui contengono
+    una parola chiave."""
+    regole = [(a["id"], [compila_parola_chiave(k) for k in a.get("parole_chiave", [])])
+              for a in argomenti]
+    nomi = {a["id"]: a["nome"] for a in argomenti}
     selezionati = []
     for a in articoli:
-        testo = f"{a.titolo} {a.sommario}"
-        corrispondenza = None
-        for sid, pattern in regole:
-            if any(p.search(testo) for p in pattern):
-                corrispondenza = sid
-                break
-        if corrispondenza is not None:
-            a.sezione = corrispondenza
-        elif filtra_argomenti:
-            continue
         if a.sezione not in nomi:
-            a.sezione = sezioni[-1]["id"]
-        a.nome_sezione = nomi[a.sezione]
-        selezionati.append(a)
+            testo = f"{a.titolo} {a.sommario}"
+            a.sezione = next(
+                (aid for aid, pattern in regole if any(p.search(testo) for p in pattern)), ""
+            )
+        if a.sezione in scelti:
+            a.nome_sezione = nomi[a.sezione]
+            selezionati.append(a)
     return selezionati
 
 
 def raggruppa_doppioni(articoli: list[Articolo], soglia: float = 0.45) -> list[Articolo]:
     """Unisce le notizie uguali riprese da fonti diverse.
-    Tiene la versione con immagine e annota le altre fonti."""
+    Tiene la versione col riassunto migliore e annota le altre fonti."""
     gruppi: list[list[Articolo]] = []
     for a in sorted(articoli, key=lambda x: x.data, reverse=True):
         pa = a.parole
@@ -367,12 +299,7 @@ def raggruppa_doppioni(articoli: list[Articolo], soglia: float = 0.45) -> list[A
     for g in gruppi:
         capo = max(
             g,
-            key=lambda x: (
-                x.tradotto_da is None,
-                -x.priorita,
-                x.immagine is not None,
-                len(x.sommario),
-            ),
+            key=lambda x: (x.ricco, -x.priorita, x.immagine is not None, len(x.sommario)),
         )
         fonti = {
             x.fonte: {"nome": x.fonte, "link": x.link, "scheda": x.scheda}
@@ -383,229 +310,160 @@ def raggruppa_doppioni(articoli: list[Articolo], soglia: float = 0.45) -> list[A
     return risultato
 
 
-def accadde_oggi(oggi: datetime, lingua: str) -> list[dict]:
-    url = (f"https://api.wikimedia.org/feed/v1/wikipedia/{lingua}/onthisday/"
+def accadde_oggi(oggi: datetime) -> list[dict]:
+    url = (f"https://api.wikimedia.org/feed/v1/wikipedia/it/onthisday/"
            f"selected/{oggi.month:02d}/{oggi.day:02d}")
     try:
-        r = requests.get(url, headers={"User-Agent": UA}, timeout=10)
+        r = requests.get(url, headers={"User-Agent": UA_WIKIPEDIA}, timeout=10)
         r.raise_for_status()
         eventi = r.json().get("selected", [])
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as e:
+        log.warning("'Accadde oggi' saltato: Wikipedia non risponde (%s)", e)
         return []
     return [{"anno": e.get("year"), "testo": e.get("text", "")} for e in eventi[:3]]
 
 
+# --------------------------------------------------------------------------- #
+#  Preferenze e programmazione
+# --------------------------------------------------------------------------- #
 def carica_configurazione(percorso: Path) -> dict:
     cfg = yaml.safe_load(percorso.read_text(encoding="utf-8"))
     if not isinstance(cfg, dict):
         raise ValueError(f"Configurazione non valida: {percorso}")
     preferenze = percorso.with_name("preferenze.yaml")
     if preferenze.exists():
-        personali = yaml.safe_load(preferenze.read_text(encoding="utf-8"))
+        personali = yaml.safe_load(preferenze.read_text(encoding="utf-8")) or {}
         if not isinstance(personali, dict):
             raise ValueError(f"Preferenze non valide: {preferenze}")
         cfg.update(personali)
+    cfg.setdefault("giorni", "Dal lunedì al venerdì")
+    cfg.setdefault("ora", "07:00")
+    cfg.setdefault("argomenti", [a["id"] for a in cfg["catalogo_argomenti"]])
+    if isinstance(cfg["ora"], int):
+        # YAML legge 07:00 senza virgolette come minuti (420)
+        cfg["ora"] = f"{cfg['ora'] // 60:02d}:{cfg['ora'] % 60:02d}"
+    controlla_preferenze(cfg)
     return cfg
 
 
-def cron_programmazione(giorni: list[str], orario: str, fuso_orario: str) -> list[str]:
-    ora, minuto = (int(parte) for parte in orario.split(":"))
-    zona = ZoneInfo(fuso_orario)
-    programmazioni = set()
+def controlla_preferenze(cfg: dict) -> None:
+    ids = [a["id"] for a in cfg["catalogo_argomenti"]]
+    if cfg["giorni"] not in OPZIONI_GIORNI:
+        raise ValueError(f"preferenze.yaml: 'giorni' deve essere uno tra {list(OPZIONI_GIORNI)}")
+    if str(cfg["ora"]) not in ORARI:
+        raise ValueError(f"preferenze.yaml: 'ora' deve essere un'ora intera tra {ORARI[0]} e {ORARI[-1]}")
+    sconosciuti = [a for a in cfg["argomenti"] if a not in ids]
+    if sconosciuti or not cfg["argomenti"]:
+        raise ValueError(f"preferenze.yaml: scegli almeno un argomento tra {ids}")
+
+
+def salva_preferenze(percorso: Path, giorni: str, ora: str, argomenti: list[str]) -> None:
+    testo = (
+        "# Le tue preferenze. Il modo più semplice per cambiarle è su GitHub:\n"
+        "# Actions → Configura la rassegna → Run workflow.\n"
+        + yaml.safe_dump({"giorni": giorni, "ora": ora, "argomenti": argomenti},
+                         allow_unicode=True, sort_keys=False)
+    )
+    percorso.write_text(testo, encoding="utf-8")
+
+
+def cron_orari() -> list[str]:
+    """Le cron del workflow: una per ogni ora UTC che può corrispondere a un orario
+    della lista, con l'ora legale e con l'ora solare."""
+    ore_utc = set()
     for mese in (1, 7):
-        campione = datetime(2026, mese, 15, ora, minuto, tzinfo=zona)
-        for giorno in giorni:
-            indice = GIORNI_ID.index(giorno)
-            scarto = (indice - campione.weekday()) % 7
-            locale = campione + timedelta(days=scarto)
-            utc = locale.astimezone(timezone.utc)
-            giorno_utc = (utc.weekday() + 1) % 7
-            programmazioni.add((utc.minute, utc.hour, giorno_utc))
-    per_orario = {}
-    for minuto_utc, ora_utc, giorno_utc in programmazioni:
-        per_orario.setdefault((minuto_utc, ora_utc), set()).add(giorno_utc)
-    return [
-        f"{minuto_utc} {ora_utc} * * {','.join(map(str, sorted(giorni_utc)))}"
-        for (minuto_utc, ora_utc), giorni_utc in sorted(per_orario.items())
-    ]
+        for orario in ORARI:
+            locale = datetime(2026, mese, 15, int(orario[:2]), tzinfo=FUSO)
+            partenza = (locale - timedelta(minutes=ANTICIPO_MINUTI)).astimezone(timezone.utc)
+            ore_utc.add((partenza.hour, partenza.minute))
+    return [f"{minuto} {ora} * * *" for ora, minuto in sorted(ore_utc)]
 
 
-def invio_programmato(ora: datetime, cfg: dict) -> bool:
-    giorni = cfg.get("giorni_invio", GIORNI_ID)
-    if GIORNI_ID[ora.weekday()] not in giorni:
-        return False
-    orario = datetime.strptime(cfg.get("ora_invio", "06:45"), "%H:%M")
-    minuti_passati = ora.hour * 60 + ora.minute - (orario.hour * 60 + orario.minute)
-    return 0 <= minuti_passati < FINESTRA_INVIO_MINUTI
+def invio_programmato(cfg: dict, adesso: datetime, cron: str | None = None) -> bool:
+    """Dice se questa esecuzione programmata deve inviare l'edizione.
+
+    GitHub passa l'espressione cron che ha avviato il workflow: da quella si ricava
+    l'ora prevista, quindi i ritardi di GitHub non contano."""
+    giorni = OPZIONI_GIORNI[cfg["giorni"]]
+    ora_scelta = int(str(cfg["ora"])[:2])
+    adesso_utc = adesso.astimezone(timezone.utc)
+    try:
+        minuto_cron, ora_cron = (int(parte) for parte in cron.split()[:2])
+    except (AttributeError, ValueError):
+        locale = adesso.astimezone(FUSO)
+        return locale.weekday() in giorni and locale.hour == ora_scelta
+    previsto = adesso_utc.replace(hour=ora_cron, minute=minuto_cron, second=0, microsecond=0)
+    if previsto > adesso_utc:
+        previsto -= timedelta(days=1)
+    edizione = (previsto + timedelta(minutes=ANTICIPO_MINUTI)).astimezone(FUSO)
+    return edizione.weekday() in giorni and (edizione.hour, edizione.minute) == (ora_scelta, 0)
 
 
-def _giorno_id(valore: str) -> str:
-    normalizzato = unicodedata.normalize("NFKD", valore.strip().lower())
-    normalizzato = "".join(c for c in normalizzato if not unicodedata.combining(c))
-    alias = {"lun": "lunedi", "mar": "martedi", "mer": "mercoledi",
-             "gio": "giovedi", "ven": "venerdi", "sab": "sabato", "dom": "domenica"}
-    giorno = alias.get(normalizzato, normalizzato)
-    if giorno not in GIORNI_ID:
-        raise ValueError(f"Giorno non riconosciuto: {valore}")
-    return giorno
-
-
-def normalizza_lingua(valore: str) -> str:
-    valore = valore.strip().lower()
-    if valore in {"tutte", "tutti", "all", "*"}:
-        return "all"
-    lingua = codice_lingua(valore)
-    if lingua and re.fullmatch(r"[a-z]{2,3}(?:[-_][a-z0-9]+)*", valore):
-        return lingua
-    raise ValueError("Lingua non valida: usa un codice ISO (es. it, en, fr) o 'tutte'.")
+def _scegli(domanda: str, opzioni: list[str], attuale: str) -> str:
+    for i, opzione in enumerate(opzioni, 1):
+        print(f"  {i}. {opzione}")
+    while True:
+        risposta = input(f"{domanda} [{opzioni.index(attuale) + 1}]: ").strip()
+        if not risposta:
+            return attuale
+        if risposta.isdigit() and 1 <= int(risposta) <= len(opzioni):
+            return opzioni[int(risposta) - 1]
+        print(f"Scrivi un numero da 1 a {len(opzioni)}.")
 
 
 def configura(percorso: Path) -> int:
     cfg = carica_configurazione(percorso)
+    catalogo = cfg["catalogo_argomenti"]
+    print("Configura la tua rassegna. Premi Invio per tenere la scelta attuale.\n")
+
+    print("Argomenti:")
+    for i, argomento in enumerate(catalogo, 1):
+        segno = "x" if argomento["id"] in cfg["argomenti"] else " "
+        print(f"  {i}. [{segno}] {argomento['nome']}")
+    while True:
+        risposta = input("Numeri degli argomenti che vuoi ricevere, separati da virgola "
+                         "(es. 1,2,5): ").strip()
+        if not risposta:
+            argomenti = cfg["argomenti"]
+            break
+        numeri = [n.strip() for n in risposta.split(",") if n.strip()]
+        if numeri and all(n.isdigit() and 1 <= int(n) <= len(catalogo) for n in numeri):
+            scelti = {catalogo[int(n) - 1]["id"] for n in numeri}
+            argomenti = [a["id"] for a in catalogo if a["id"] in scelti]
+            break
+        print(f"Scrivi uno o più numeri da 1 a {len(catalogo)}, separati da virgola.")
+
+    print("\nGiorni di invio:")
+    giorni = _scegli("Numero", list(OPZIONI_GIORNI), cfg["giorni"])
+    print("\nOra di invio:")
+    ora = _scegli("Numero", ORARI, str(cfg["ora"]))
+
     pref_path = percorso.with_name("preferenze.yaml")
-    preferenze = yaml.safe_load(pref_path.read_text(encoding="utf-8")) if pref_path.exists() else {}
-    preferenze = preferenze or {}
+    salva_preferenze(pref_path, giorni, ora, argomenti)
+    print(f"\nFatto! Preferenze salvate in {pref_path.name}.")
+    print("Per usarle negli invii automatici, carica il file su GitHub (git commit e git push).")
+    return 0
 
-    print("Configura il tuo giornale. Premi Invio per mantenere il valore proposto.")
-    testata = input(f"Nome della rassegna [{cfg.get('testata', 'Personal Digest Mail')}]: ").strip()
-    if testata:
-        cfg["testata"] = testata
 
-    lingua_default = preferenze.get("lingua_articoli", cfg.get("lingua_articoli", "it"))
-    while True:
-        lingua_input = input(
-            f"Lingua degli articoli (codice ISO, es. it/en/fr, oppure tutte) [{lingua_default}]: "
-        ).strip()
-        try:
-            lingua_articoli_scelta = normalizza_lingua(lingua_input or lingua_default)
-            break
-        except ValueError as e:
-            print(e)
-
-    while True:
-        fuso = input(f"Fuso orario [{cfg.get('fuso_orario', 'Europe/Rome')}]: ").strip()
-        fuso = fuso or cfg.get("fuso_orario", "Europe/Rome")
-        try:
-            ZoneInfo(fuso)
-            break
-        except ZoneInfoNotFoundError:
-            print("Fuso non riconosciuto (esempio valido: Europe/Rome).")
-
-    giorni_default = preferenze.get("giorni_invio", GIORNI_ID[:5])
-    while True:
-        testo_giorni = input(
-            f"Giorni, separati da virgola [{', '.join(giorni_default)}]: "
-        ).strip()
-        if not testo_giorni:
-            giorni = giorni_default
-            break
-        try:
-            giorni = list(dict.fromkeys(_giorno_id(g) for g in testo_giorni.split(",")))
-            if not giorni:
-                raise ValueError("Indica almeno un giorno.")
-            break
-        except ValueError as e:
-            print(e)
-
-    orario_default = preferenze.get("ora_invio", "06:45")
-    while True:
-        orario = input(f"Orario locale HH:MM [{orario_default}]: ").strip() or orario_default
-        try:
-            datetime.strptime(orario, "%H:%M")
-            break
-        except ValueError:
-            print("Orario non valido: usa il formato 06:45.")
-
-    sezioni_default = preferenze.get("sezioni", cfg.get("sezioni", []))
-    print("Argomenti: una riga per argomento nel formato Nome | parola1, parola2.")
-    print("Invio vuoto sulla prima riga mantiene gli argomenti esistenti.")
-    sezioni = []
-    argomenti_personali = False
-    while True:
-        riga = input("Argomento: ").strip()
-        if not riga:
-            if sezioni:
-                break
-            sezioni = sezioni_default
-            break
-        if "|" in riga:
-            nome, parole = (parte.strip() for parte in riga.split("|", 1))
-            parole_chiave = [p.strip() for p in parole.split(",") if p.strip()]
-        else:
-            nome = riga
-            parole_chiave = [riga]
-        if not nome or not parole_chiave:
-            print("Inserisci un nome e almeno una parola chiave.")
-            continue
-        base_id = re.sub(
-            r"[^a-z0-9]+", "_",
-            unicodedata.normalize("NFKD", nome.lower()).encode("ascii", "ignore").decode()
-        ).strip("_") or f"argomento_{len(sezioni) + 1}"
-        sid = base_id
-        suffisso = 2
-        while any(s["id"] == sid for s in sezioni):
-            sid = f"{base_id}_{suffisso}"
-            suffisso += 1
-        sezioni.append({"id": sid, "nome": nome, "parole_chiave": parole_chiave})
-        argomenti_personali = True
-
-    workflow = QUI / ".github" / "workflows" / "rassegna.yml"
-    if not workflow.exists():
-        raise FileNotFoundError(f"Workflow GitHub Actions non trovato: {workflow}")
-    testo_workflow = workflow.read_text(encoding="utf-8")
-    pattern = re.compile(r"(?ms)^  schedule:\r?\n.*?(?=^  workflow_dispatch:)")
-    if not pattern.search(testo_workflow):
-        raise ValueError(f"Impossibile aggiornare la sezione schedule in {workflow}")
-    cron = cron_programmazione(giorni, orario, fuso)
-
-    cfg.update({
-        "fuso_orario": fuso,
-        "giorni_invio": giorni,
-        "ora_invio": orario,
-    })
-    if sezioni:
-        cfg["sezioni"] = sezioni
-        preferenze["sezioni"] = sezioni
-    if argomenti_personali:
-        preferenze["sottotitolo"] = " · ".join(s["nome"] for s in sezioni)
-    preferenze["filtra_argomenti"] = (
-        argomenti_personali or preferenze.get("filtra_argomenti", False)
-    )
-    preferenze.update({
-        "testata": cfg.get("testata", "Personal Digest Mail"),
-        "lingua_articoli": lingua_articoli_scelta,
-        "fuso_orario": fuso,
-        "giorni_invio": giorni,
-        "ora_invio": orario,
-    })
-    pref_path.write_text(
-        yaml.safe_dump(preferenze, allow_unicode=True, sort_keys=False),
-        encoding="utf-8"
-    )
-
-    blocco = "  schedule:\n    # Generato da python rassegna.py --configura.\n"
-    blocco += "".join(f'    - cron: "{espressione}"\n' for espressione in cron)
-    workflow.write_text(pattern.sub(blocco, testo_workflow, count=1), encoding="utf-8")
-
-    while True:
-        destinatario = input(
-            "Email destinataria (facoltativa, non verrà salvata nel repository): "
-        ).strip()
-        if not destinatario or all(
-            re.fullmatch(r"[^@\s,]+@[^@\s,]+\.[^@\s,]+", email.strip())
-            for email in destinatario.split(",")
-        ):
-            break
-        print("Indirizzo non valido: inserisci email separate da virgola.")
-    if destinatario:
-        env_path = QUI / ".env"
-        righe = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
-        righe = [r for r in righe if not r.startswith("MAIL_TO=")]
-        righe.append(f"MAIL_TO={destinatario}")
-        env_path.write_text("\n".join(righe) + "\n", encoding="utf-8")
-        print("Indirizzo salvato solo nel file locale .env.")
-    print(f"Preferenze salvate in {pref_path}. Cron GitHub Actions aggiornato.")
-    print("Per gli invii su GitHub, imposta MAIL_TO nei Secrets del tuo repository.")
+def preferenze_da_modulo(percorso: Path, modulo: dict) -> int:
+    """Salva le scelte fatte nel modulo 'Configura la rassegna' di GitHub Actions."""
+    cfg = carica_configurazione(percorso)
+    argomenti = [a["id"] for a in cfg["catalogo_argomenti"]
+                 if str(modulo.get(a["id"], "false")).lower() == "true"]
+    cfg.update({"giorni": modulo.get("giorni"), "ora": modulo.get("ora"), "argomenti": argomenti})
+    try:
+        controlla_preferenze(cfg)
+    except ValueError as e:
+        log.error("%s", e)
+        return 1
+    salva_preferenze(percorso.with_name("preferenze.yaml"), cfg["giorni"], cfg["ora"], argomenti)
+    nomi = [a["nome"] for a in cfg["catalogo_argomenti"] if a["id"] in argomenti]
+    riepilogo = (f"Preferenze salvate: {cfg['giorni'].lower()} alle {cfg['ora']}.\n"
+                 f"Argomenti: {', '.join(nomi)}.")
+    log.info(riepilogo)
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+            f.write(f"### Preferenze salvate\n\n{riepilogo}\n")
     return 0
 
 
@@ -613,47 +471,35 @@ def configura(percorso: Path) -> int:
 #  Impaginazione
 # --------------------------------------------------------------------------- #
 def impagina(cfg: dict, articoli: list[Articolo], ora: datetime) -> dict:
-    # Prima pagina: notizie riprese da più fonti, poi le più recenti con foto
-    ordinati = sorted(
-        articoli,
-        key=lambda a: (
-            a.tradotto_da is None,
-            len(a.altre_fonti),
-            -a.priorita,
-            a.immagine is not None,
-            a.data,
-        ),
-        reverse=True)
+    def rilevanza(a: Articolo):
+        # prima le notizie riprese da più fonti, poi quelle con un vero riassunto
+        return (len(a.altre_fonti), a.ricco, -a.priorita, a.immagine is not None, a.data)
+
+    ordinati = sorted(articoli, key=rilevanza, reverse=True)
     prima = ordinati[: cfg.get("max_prima_pagina", 4)]
     usati = {id(a) for a in prima}
 
+    argomenti = [a for a in cfg["catalogo_argomenti"] if a["id"] in cfg["argomenti"]]
     sezioni, avanzi = [], []
-    for s in cfg["sezioni"]:
+    for s in argomenti:
         pezzi = [a for a in ordinati if a.sezione == s["id"] and id(a) not in usati]
-        pezzi.sort(
-            key=lambda a: (a.tradotto_da is None, len(a.altre_fonti), -a.priorita, a.data),
-            reverse=True,
-        )
-        limite = s.get("max_articoli", cfg.get("max_per_sezione", 4))
-        n = max(0, int(limite))
+        n = max(0, int(cfg.get("max_per_argomento", 5)))
         if pezzi[:n]:
             sezioni.append({"nome": s["nome"], "articoli": pezzi[:n]})
         avanzi += pezzi[n:]
 
     avanzi.sort(key=lambda a: a.data, reverse=True)
     return {
-        "testata": cfg.get("testata", "Personal Digest Mail"),
-        "sottotitolo": cfg.get("sottotitolo", ""),
-        "lingua_email": cfg.get("lingua_articoli", "it")
-        if cfg.get("lingua_articoli", "it") != "all" else cfg.get("lingua", "it"),
+        "testata": cfg.get("testata", "La Rassegna"),
+        "sottotitolo": " · ".join(s["nome"] for s in argomenti),
         "data": data_in_italiano(ora).upper(),
         "data_breve": data_in_italiano(ora),
+        "anno": ora.year,
         "numero": (ora.date() - datetime(ora.year, 1, 1).date()).days + 1,
         "prima": prima,
         "sezioni": sezioni,
-        "in_breve": avanzi[: cfg.get("max_in_breve", 30)],
-        "accadde_oggi": accadde_oggi(ora, cfg.get("lingua", "it")) if cfg.get("accadde_oggi") else [],
-        "fonti": cfg["fonti"],
+        "in_breve": avanzi[: cfg.get("max_in_breve", 8)],
+        "accadde_oggi": accadde_oggi(ora) if cfg.get("accadde_oggi") else [],
     }
 
 
@@ -669,8 +515,6 @@ def testo_semplice(p: dict) -> str:
             righe.append(f"- {a.titolo} ({a.fonte})")
             if a.sommario:
                 righe.append(f"  {a.sommario}")
-            if a.tradotto_da:
-                righe.append(f"  Tradotto con DeepL da {a.tradotto_da.upper()}.")
             if a.altre_fonti:
                 nomi_fonti = ", ".join(fonte["nome"] for fonte in a.altre_fonti)
                 righe.append(f"  Ripresa anche da: {nomi_fonti}")
@@ -682,10 +526,13 @@ def testo_semplice(p: dict) -> str:
             testo = f"- {a.titolo} ({a.fonte})"
             if a.sommario:
                 testo += f" — {a.sommario}"
-            if a.tradotto_da:
-                testo += f" [Tradotto con DeepL da {a.tradotto_da.upper()}]"
             righe.append(f"{testo}\n  {a.link}")
     return "\n".join(righe)
+
+
+def ambiente_template() -> Environment:
+    return Environment(loader=FileSystemLoader(QUI / "templates"),
+                       autoescape=select_autoescape(["html", "j2"]))
 
 
 # --------------------------------------------------------------------------- #
@@ -703,12 +550,12 @@ def carica_env(percorso: Path) -> None:
 
 
 def invia(oggetto: str, corpo_html: str, corpo_testo: str) -> None:
-    host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-    porta = int(os.environ.get("SMTP_PORT", "465"))
+    host = os.environ.get("SMTP_HOST") or "smtp.gmail.com"
+    porta = int(os.environ.get("SMTP_PORT") or "465")
     utente = os.environ["SMTP_USER"]
     password = os.environ["SMTP_PASSWORD"]
-    destinatari = [d.strip() for d in os.environ.get("MAIL_TO", utente).split(",") if d.strip()]
-    mittente = os.environ.get("MAIL_FROM", utente)
+    destinatari = [d.strip() for d in (os.environ.get("MAIL_TO") or utente).split(",") if d.strip()]
+    mittente = os.environ.get("MAIL_FROM") or utente
 
     msg = EmailMessage()
     msg["Subject"] = oggetto
@@ -735,27 +582,45 @@ def invia(oggetto: str, corpo_html: str, corpo_testo: str) -> None:
 #  Main
 # --------------------------------------------------------------------------- #
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Rassegna stampa quotidiana via email")
+    ap = argparse.ArgumentParser(description="Rassegna stampa italiana via email")
     ap.add_argument("--config", default=str(QUI / "config.yaml"))
-    ap.add_argument("--configura", action="store_true", help="configura argomenti, giorni e orario")
+    ap.add_argument("--configura", action="store_true", help="scegli argomenti, giorni e ora")
+    ap.add_argument("--da-modulo", action="store_true",
+                    help="salva le preferenze dal modulo di GitHub Actions (variabile MODULO)")
     ap.add_argument("--anteprima", nargs="?", const="anteprima.html", metavar="FILE",
-                    help="salva l'HTML in un file (default: anteprima.html)")
+                    help="salva l'HTML in un file (predefinito: anteprima.html)")
     ap.add_argument("--invia", action="store_true", help="invia l'email")
     ap.add_argument("--demo", action="store_true", help="usa i feed di esempio in demo/, senza internet")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-    if args.configura:
-        return configura(Path(args.config))
+    try:
+        if args.configura:
+            return configura(Path(args.config))
+        if args.da_modulo:
+            return preferenze_da_modulo(Path(args.config), json.loads(os.environ.get("MODULO", "{}")))
+        cfg = carica_configurazione(Path(args.config))
+    except ValueError as e:
+        log.error("%s", e)
+        return 1
     if not args.anteprima and not args.invia:
         ap.error("scegli --anteprima e/o --invia")
 
-    cfg = carica_configurazione(Path(args.config))
-    tz = ZoneInfo(cfg.get("fuso_orario", "Europe/Rome"))
-    ora = datetime.now(tz)
-    if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and not invio_programmato(ora, cfg):
-        log.info("Nessun invio previsto oggi a quest'ora.")
+    ora = datetime.now(FUSO)
+    if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and not invio_programmato(
+        cfg, ora, os.environ.get("GITHUB_SCHEDULE")
+    ):
+        log.info("Nessun invio previsto a quest'ora: la rassegna parte %s alle %s.",
+                 cfg["giorni"].lower(), cfg["ora"])
         return 0
+
+    carica_env(QUI / ".env")
+    if args.invia:
+        mancanti = [v for v in ("SMTP_USER", "SMTP_PASSWORD") if not os.environ.get(v)]
+        if mancanti:
+            log.error("Mancano %s: aggiungili su GitHub in Settings → Secrets and variables "
+                      "→ Actions (o nel file .env per le prove in locale).", " e ".join(mancanti))
+            return 1
 
     demo_dir = None
     if args.demo:
@@ -767,22 +632,15 @@ def main() -> int:
     else:
         dal = datetime.now(timezone.utc) - timedelta(hours=cfg.get("ore_indietro", 26))
 
-    carica_env(QUI / ".env")
     articoli = []
     for f in cfg["fonti"]:
         articoli += leggi_feed(f, dal, demo_dir)
-    try:
-        articoli = traduci_articoli(articoli, cfg.get("lingua_articoli", "it"))
-    except (requests.RequestException, ValueError, KeyError) as e:
-        log.error("Traduzione degli articoli non riuscita: %s", e)
-        return 1
     if not articoli:
-        log.error("Nessuna notizia trovata nella lingua scelta: controlla feed e preferenze.")
+        log.error("Nessuna notizia trovata: controlla la connessione e le fonti in config.yaml.")
         return 1
-
-    articoli = classifica(articoli, cfg["sezioni"], cfg.get("filtra_argomenti", False))
+    articoli = classifica(articoli, cfg["catalogo_argomenti"], cfg["argomenti"])
     if not articoli:
-        log.error("Nessuna notizia corrisponde agli argomenti scelti nei feed configurati.")
+        log.error("Nessuna notizia sugli argomenti scelti nelle ultime ore.")
         return 1
     articoli = raggruppa_doppioni(articoli)
     pagina = impagina(cfg, articoli, ora)
@@ -794,19 +652,13 @@ def main() -> int:
             if not a.immagine:
                 a.immagine = immagine_dalla_pagina(a.link)
 
-    env = Environment(loader=FileSystemLoader(QUI / "templates"),
-                      autoescape=select_autoescape(["html", "j2"]))
-    corpo_html = env.get_template("email.html.j2").render(**pagina)
+    corpo_html = ambiente_template().get_template("email.html.j2").render(**pagina)
     oggetto = f"{pagina['testata']} – {pagina['data_breve']}"
 
     if args.anteprima:
         Path(args.anteprima).write_text(corpo_html, encoding="utf-8")
         log.info("Anteprima salvata in %s", args.anteprima)
     if args.invia:
-        for var in ("SMTP_USER", "SMTP_PASSWORD"):
-            if not os.environ.get(var):
-                log.error("Manca %s: impostalo nei Secrets di GitHub o nel file .env", var)
-                return 1
         invia(oggetto, corpo_html, testo_semplice(pagina))
     return 0
 

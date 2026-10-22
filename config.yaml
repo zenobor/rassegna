@@ -1,200 +1,105 @@
 # ============================================================
-#  Personal Digest Mail — configuration
-#  Modifica questo file per personalizzare la TUA rassegna.
+#  La Rassegna — impostazioni avanzate
+#  Per scegliere argomenti, giorni e ora NON serve toccare
+#  questo file: usa Actions → Configura la rassegna su GitHub.
+#  Qui si cambiano solo fonti e dettagli dell'impaginazione.
 # ============================================================
 
-testata: "Personal Digest Mail"
-sottotitolo: "Politica · Intelligence · Terrorismo · Geopolitica · Guerra ibrida · Cyber · Tecnologia · Esteri · Economia · Scienza e cultura"
-lingua: "it"
-fuso_orario: "Europe/Rome"
+testata: "La Rassegna"
 
-# Quante ore indietro guardare (24 = notizie dell'ultimo giorno)
+# Quante ore indietro guardare (26 = l'ultimo giorno, con un po' di margine)
 ore_indietro: 26
 
-# Limiti editoriali: le singole sezioni possono definire max_articoli.
-max_per_sezione: 6
+# Quante notizie mostrare
 max_prima_pagina: 4
+max_per_argomento: 5
 max_in_breve: 8
 
-# Cerca l'immagine dentro la pagina dell'articolo se il feed non la fornisce
-# (più lento, ma la rassegna è più bella)
+# Cerca la foto nella pagina dell'articolo se il feed non la fornisce
 cerca_immagini_nelle_pagine: true
 
 # "Accadde oggi" da Wikipedia
 accadde_oggi: true
 
 # ------------------------------------------------------------
-#  Sezioni, in ordine di apparizione.
-#  Le "parole_chiave" spostano un articolo in quella sezione
-#  anche se arriva da un feed generico. Vince la prima sezione
-#  (dall'alto) che trova una parola chiave nel titolo o nel testo.
-#  Parole corte (fino a 4 lettere) contano solo come parola intera;
-#  quelle più lunghe valgono anche come inizio di parola
-#  (es. "terroris" trova terrorismo, terroristi, terroristico).
+#  Argomenti tra cui scegliere, nell'ordine in cui compaiono
+#  nell'email. Le notizie dei feed tematici (es. ANSA Sport)
+#  restano nel loro argomento; quelle dei feed generali vanno
+#  nel primo argomento di cui contengono una parola chiave.
+#  Parole corte (fino a 4 lettere) contano solo come parola
+#  intera; quelle più lunghe anche come inizio di parola
+#  (es. "arrestat" trova arrestato, arrestati, arrestata).
 # ------------------------------------------------------------
-sezioni:
+catalogo_argomenti:
   - id: politica
-    nome: "Politica italiana"
-    max_articoli: 6
-    parole_chiave: [governo, meloni, parlamento, senato, camera, ministro, decreto, schlein, elezioni, mattarella]
-  - id: intelligence
-    nome: "Servizi segreti e intelligence"
-    max_articoli: 4
-    parole_chiave: [intelligence, spionaggio, spia, spie, "servizi segreti", aise, aisi, dis, cia, mossad, mi6, fsb, gru, espionage, spy, spies]
-  - id: terrorismo
-    nome: "Terrorismo"
-    max_articoli: 4
-    parole_chiave: [terroris, jihad, "isis", "stato islamico", "al-qaeda", attentat, terror]
-  - id: geopolitica
-    nome: "Guerre e geopolitica"
-    max_articoli: 6
-    parole_chiave: [guerra, ucraina, russia, israele, gaza, iran, nato, cina, taiwan, missil, esercito, war, ukraine, military]
-  - id: ibrida
-    nome: "Guerra ibrida"
-    max_articoli: 4
-    parole_chiave: [sabotaggi, disinformazione, "guerra ibrida", "hybrid", "cavi sottomarini", "undersea cable", sabotage, "flotta ombra", "shadow fleet", "droni sopra", "interferenz"]
-  - id: cyber
-    nome: "Cybersecurity e attacchi hacker"
-    max_articoli: 6
-    parole_chiave: [hacker, ransomware, cyber, malware, phishing, "data breach", "violazione dei dati", vulnerabilit, exploit, "zero-day", ddos, botnet, apt, cybersecurity]
-  - id: tecnologia
-    nome: "Tecnologia"
-    max_articoli: 4
-    parole_chiave: [intelligenza artificiale, ia, "artificial intelligence", chip, nvidia, openai, anthropic, apple, google, microsoft, startup, smartphone]
+    nome: "Politica"
+    parole_chiave: [governo, meloni, parlamento, senato, "camera dei deputati", ministr, decreto, elezioni, mattarella, schlein, quirinale, "legge di bilancio", manovra, opposizione, premier]
   - id: esteri
     nome: "Esteri"
-    max_articoli: 3
-    parole_chiave: []
+    parole_chiave: [guerra, ucraina, russia, israele, gaza, iran, nato, cina, "stati uniti", trump, putin, zelensky, onu, "unione europea", ue, bruxelles, terroris, intelligence, spionaggio, "medio oriente"]
   - id: economia
-    nome: "Economia"
-    max_articoli: 3
-    parole_chiave: [economia, inflazione, mercati, borsa, spread, pil, "tassi di interesse", economy, inflation, markets, stocks]
+    nome: "Economia e lavoro"
+    parole_chiave: [economia, inflazione, mercati, borsa, spread, pil, bce, "tassi di interesse", lavoro, occupazione, sindacat, imprese, bollette, pensioni, fisco, tasse]
+  - id: tecnologia
+    nome: "Tecnologia e sicurezza informatica"
+    parole_chiave: [tecnologi, "intelligenza artificiale", ia, hacker, cyber, ransomware, malware, phishing, informatic, smartphone, app, apple, google, microsoft, openai, chip, digitale, startup]
   - id: scienza
-    nome: "Scienza e curiosità"
-    max_articoli: 4
-    parole_chiave: [scienziat, ricercatori, studio, scoperta, nasa, esa, spazio, researchers, scientists]
+    nome: "Scienza e salute"
+    parole_chiave: [scienz, ricercatori, scoperta, spazio, nasa, esa, salute, medic, malattia, vaccin, ospedal, clima]
   - id: cultura
-    nome: "Cultura"
-    max_articoli: 4
-    parole_chiave: [storia, archeologia, museo, mostra, libro, arte, history, archaeology, museum, exhibition, book]
+    nome: "Cultura e spettacoli"
+    parole_chiave: [cultura, libro, libri, mostra, museo, cinema, film, festival, musica, concerto, teatro, arte, "serie tv"]
+  - id: sport
+    nome: "Sport"
+    parole_chiave: [calcio, "serie a", campionato, gol, tennis, sinner, "formula 1", motogp, olimpiad, juventus]
+  - id: cronaca
+    nome: "Cronaca"
+    parole_chiave: [arrestat, omicidio, incidente, polizia, carabinieri, indagin, procura, tribunale, processo, maltempo, alluvione, terremoto, incendio]
 
 # ------------------------------------------------------------
-#  Fonti (feed RSS).
-#  sezione  = sezione predefinita se nessuna parola chiave corrisponde
-#  scheda   = la nota in piccolo accanto alla fonte: orientamento,
-#             proprietà, interessi. Sono descrizioni INDICATIVE:
-#             verificale e correggile secondo le tue valutazioni.
-#  priorita = ordine editoriale: un numero più basso ha precedenza.
+#  Fonti (feed RSS italiani).
+#  argomento = argomento del feed; "generale" se il feed parla
+#              di tutto (decidono le parole chiave)
+#  scheda    = la nota in piccolo accanto alla fonte. Sono
+#              descrizioni INDICATIVE: verificale e correggile.
+#  priorita  = a parità di copertura, un numero più basso
+#              ha precedenza.
 # ------------------------------------------------------------
 fonti:
-  - nome: "Il Post"
-    url: "https://www.ilpost.it/feed/"
-    lingua: it
-    priorita: 2
-    sezione: esteri
-    scheda: "Quotidiano indipendente, taglio esplicativo"
+  # Agenzia di stampa
+  - {nome: "ANSA Politica", url: "https://www.ansa.it/sito/notizie/politica/politica_rss.xml", argomento: politica, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Mondo", url: "https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml", argomento: esteri, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Economia", url: "https://www.ansa.it/sito/notizie/economia/economia_rss.xml", argomento: economia, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Cronaca", url: "https://www.ansa.it/sito/notizie/cronaca/cronaca_rss.xml", argomento: cronaca, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Tecnologia", url: "https://www.ansa.it/canale_tecnologia/notizie/tecnologia_rss.xml", argomento: tecnologia, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Scienza", url: "https://www.ansa.it/canale_scienza_tecnica/notizie/scienzaetecnica_rss.xml", argomento: scienza, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Salute", url: "https://www.ansa.it/canale_saluteebenessere/notizie/saluteebenessere_rss.xml", argomento: scienza, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Cultura", url: "https://www.ansa.it/sito/notizie/cultura/cultura_rss.xml", argomento: cultura, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Sport", url: "https://www.ansa.it/sito/notizie/sport/sport_rss.xml", argomento: sport, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
 
-  - nome: "ANSA"
-    url: "https://www.ansa.it/sito/notizie/politica/politica_rss.xml"
-    lingua: it
-    priorita: 1
-    sezione: politica
-    scheda: "Agenzia italiana, cooperativa editori"
+  # Servizio pubblico
+  - {nome: "Rai News", url: "https://www.rainews.it/rss/politica", argomento: politica, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
+  - {nome: "Rai News Esteri", url: "https://www.rainews.it/rss/esteri", argomento: esteri, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
+  - {nome: "Rai News Cronaca", url: "https://www.rainews.it/rss/cronaca", argomento: cronaca, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
+  - {nome: "Rai News Salute", url: "https://www.rainews.it/rss/salute", argomento: scienza, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
 
-  - nome: "ANSA Mondo"
-    url: "https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml"
-    lingua: it
-    priorita: 1
-    sezione: esteri
-    scheda: "Agenzia italiana, cooperativa editori"
+  # Quotidiani e testate nazionali
+  - {nome: "Il Post", url: "https://www.ilpost.it/feed", argomento: generale, priorita: 2, scheda: "Quotidiano online, taglio esplicativo"}
+  - {nome: "Sky TG24", url: "https://tg24.sky.it/rss/tg24.xml", argomento: generale, priorita: 2, scheda: "Canale all-news, gruppo Comcast"}
+  - {nome: "Il Sole 24 Ore", url: "https://www.ilsole24ore.com/rss/italia.xml", argomento: generale, priorita: 2, scheda: "Quotidiano economico di Confindustria"}
+  - {nome: "Il Sole 24 Ore Economia", url: "https://www.ilsole24ore.com/rss/economia.xml", argomento: economia, priorita: 2, scheda: "Quotidiano economico di Confindustria"}
+  - {nome: "Il Sole 24 Ore Mondo", url: "https://www.ilsole24ore.com/rss/mondo.xml", argomento: esteri, priorita: 2, scheda: "Quotidiano economico di Confindustria"}
+  - {nome: "Il Sole 24 Ore Tecnologia", url: "https://www.ilsole24ore.com/rss/tecnologia.xml", argomento: tecnologia, priorita: 2, scheda: "Quotidiano economico di Confindustria"}
+  - {nome: "Il Sole 24 Ore Cultura", url: "https://www.ilsole24ore.com/rss/cultura.xml", argomento: cultura, priorita: 2, scheda: "Quotidiano economico di Confindustria"}
+  - {nome: "la Repubblica Politica", url: "https://www.repubblica.it/rss/politica/rss2.0.xml", argomento: politica, priorita: 2, scheda: "Quotidiano nazionale generalista"}
+  - {nome: "la Repubblica Esteri", url: "https://www.repubblica.it/rss/esteri/rss2.0.xml", argomento: esteri, priorita: 2, scheda: "Quotidiano nazionale generalista"}
+  - {nome: "la Repubblica Economia", url: "https://www.repubblica.it/rss/economia/rss2.0.xml", argomento: economia, priorita: 2, scheda: "Quotidiano nazionale generalista"}
+  - {nome: "la Repubblica Cronaca", url: "https://www.repubblica.it/rss/cronaca/rss2.0.xml", argomento: cronaca, priorita: 2, scheda: "Quotidiano nazionale generalista"}
+  - {nome: "la Repubblica Tecnologia", url: "https://www.repubblica.it/rss/tecnologia/rss2.0.xml", argomento: tecnologia, priorita: 2, scheda: "Quotidiano nazionale generalista"}
+  - {nome: "Il Fatto Quotidiano", url: "https://www.ilfattoquotidiano.it/feed/", argomento: generale, priorita: 3, scheda: "Quotidiano nazionale generalista"}
+  - {nome: "Internazionale", url: "https://www.internazionale.it/sitemaps/rss.xml", argomento: generale, priorita: 3, scheda: "Settimanale, stampa estera tradotta"}
 
-  - nome: "ANSA Economia"
-    url: "https://www.ansa.it/sito/notizie/economia/economia_rss.xml"
-    lingua: it
-    priorita: 1
-    sezione: economia
-    scheda: "Agenzia italiana, cooperativa editori"
-
-  - nome: "Sky TG24"
-    url: "https://tg24.sky.it/rss/tg24.xml"
-    lingua: it
-    priorita: 3
-    sezione: esteri
-    scheda: "All-news, gruppo Comcast"
-
-  - nome: "BBC News"
-    url: "https://feeds.bbci.co.uk/news/world/rss.xml"
-    lingua: en
-    priorita: 2
-    sezione: esteri
-    scheda: "Servizio pubblico britannico"
-
-  - nome: "Deutsche Welle"
-    url: "https://rss.dw.com/xml/rss-en-all"
-    lingua: en
-    priorita: 2
-    sezione: esteri
-    scheda: "Servizio pubblico tedesco"
-
-  - nome: "NOS Nieuws"
-    url: "https://feeds.nos.nl/nosnieuwsalgemeen"
-    lingua: nl
-    priorita: 2
-    sezione: esteri
-    scheda: "Servizio pubblico olandese"
-
-  - nome: "CISA Advisories"
-    url: "https://www.cisa.gov/cybersecurity-advisories/all.xml"
-    lingua: en
-    priorita: 0
-    sezione: cyber
-    scheda: "Agenzia ufficiale USA"
-
-  - nome: "The Record"
-    url: "https://therecord.media/feed"
-    lingua: en
-    priorita: 3
-    sezione: cyber
-    scheda: "Testata cyber, gruppo Mastercard"
-
-  - nome: "BleepingComputer"
-    url: "https://www.bleepingcomputer.com/feed/"
-    lingua: en
-    priorita: 3
-    sezione: cyber
-    scheda: "Testata specializzata in cybersecurity"
-
-  - nome: "SecurityWeek"
-    url: "https://www.securityweek.com/feed/"
-    lingua: en
-    priorita: 3
-    sezione: cyber
-    scheda: "Testata specializzata in cybersecurity"
-
-  - nome: "Krebs on Security"
-    url: "https://krebsonsecurity.com/feed/"
-    lingua: en
-    priorita: 3
-    sezione: cyber
-    scheda: "Giornalismo investigativo sulla sicurezza"
-
-  - nome: "The Hacker News"
-    url: "https://feeds.feedburner.com/TheHackersNews"
-    lingua: en
-    priorita: 4
-    sezione: cyber
-    scheda: "Testata indipendente sulla sicurezza informatica"
-
-  - nome: "War on the Rocks"
-    url: "https://warontherocks.com/feed/"
-    lingua: en
-    priorita: 3
-    sezione: geopolitica
-    scheda: "Analisi indipendente su difesa USA"
-
-  - nome: "ScienceDaily"
-    url: "https://www.sciencedaily.com/rss/all.xml"
-    lingua: en
-    priorita: 3
-    sezione: scienza
-    scheda: "Comunicati di università e ricerca"
+  # Testate specializzate
+  - {nome: "Cybersecurity360", url: "https://www.cybersecurity360.it/feed/", argomento: tecnologia, priorita: 3, scheda: "Testata sulla sicurezza informatica"}
+  - {nome: "Punto Informatico", url: "https://www.punto-informatico.it/feed/", argomento: tecnologia, priorita: 3, scheda: "Testata di tecnologia"}
+  - {nome: "Analisi Difesa", url: "https://www.analisidifesa.it/feed/", argomento: esteri, priorita: 3, scheda: "Rivista su difesa e sicurezza"}

@@ -1,0 +1,88 @@
+name: Configura la rassegna
+
+# Actions → Configura la rassegna → Run workflow: si apre un modulo con le scelte.
+# Le opzioni devono restare uguali a OPZIONI_GIORNI, ORARI e catalogo_argomenti
+# (lo controllano i test).
+on:
+  workflow_dispatch:
+    inputs:
+      giorni:
+        description: "Giorni di invio"
+        type: choice
+        options:
+          - "Dal lunedì al venerdì"
+          - "Tutti i giorni"
+          - "Solo sabato e domenica"
+        default: "Dal lunedì al venerdì"
+      ora:
+        description: "Ora di invio"
+        type: choice
+        options: ["05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"]
+        default: "07:00"
+      politica:
+        description: "Politica"
+        type: boolean
+        default: true
+      esteri:
+        description: "Esteri"
+        type: boolean
+        default: true
+      economia:
+        description: "Economia e lavoro"
+        type: boolean
+        default: true
+      tecnologia:
+        description: "Tecnologia e sicurezza informatica"
+        type: boolean
+        default: true
+      scienza:
+        description: "Scienza e salute"
+        type: boolean
+        default: true
+      cultura:
+        description: "Cultura e spettacoli"
+        type: boolean
+        default: true
+      sport:
+        description: "Sport"
+        type: boolean
+        default: false
+      cronaca:
+        description: "Cronaca"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  configura:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installa le dipendenze
+        run: pip install -r requirements.txt
+
+      - name: Salva le preferenze
+        env:
+          MODULO: ${{ toJSON(inputs) }}
+        run: python rassegna.py --da-modulo
+
+      - name: Pubblica le preferenze
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add preferenze.yaml
+          if git diff --cached --quiet; then
+            echo "Le preferenze erano già queste: nessuna modifica."
+          else
+            git commit -m "Aggiorna le preferenze della rassegna"
+            git push
+          fi

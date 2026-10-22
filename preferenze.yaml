@@ -1,11 +1,12 @@
-testata: "Personal Digest Mail"
-lingua_articoli: it
-lingua: it
-fuso_orario: "Europe/Rome"
-giorni_invio:
-  - lunedi
-  - martedi
-  - mercoledi
-  - giovedi
-  - venerdi
-ora_invio: "06:45"
+# Le tue preferenze. Il modo più semplice per cambiarle è su GitHub:
+# Actions → Configura la rassegna → Run workflow.
+giorni: Dal lunedì al venerdì
+ora: 07:00
+argomenti:
+- politica
+- esteri
+- economia
+- tecnologia
+- scienza
+- cultura
+- cronaca

@@ -1,11 +1,30 @@
-name: Personal Digest Mail
+name: Invia la rassegna
 
 on:
   schedule:
-    # Le due ore UTC corrispondono alle 06:45 in Europe/Rome, estate e inverno.
-    - cron: "45 4 * * 1-5"
-    - cron: "45 5 * * 1-5"
-  workflow_dispatch:   # pulsante "Run workflow" per provarla quando vuoi
+    # Una partenza alle :55 di ogni ora utile (orari italiani dalle 05:00 alle 22:00,
+    # con ora legale e solare). Il programma invia solo nell'ora e nei giorni scelti
+    # in preferenze.yaml: non serve modificare queste righe.
+    - cron: "55 2 * * *"
+    - cron: "55 3 * * *"
+    - cron: "55 4 * * *"
+    - cron: "55 5 * * *"
+    - cron: "55 6 * * *"
+    - cron: "55 7 * * *"
+    - cron: "55 8 * * *"
+    - cron: "55 9 * * *"
+    - cron: "55 10 * * *"
+    - cron: "55 11 * * *"
+    - cron: "55 12 * * *"
+    - cron: "55 13 * * *"
+    - cron: "55 14 * * *"
+    - cron: "55 15 * * *"
+    - cron: "55 16 * * *"
+    - cron: "55 17 * * *"
+    - cron: "55 18 * * *"
+    - cron: "55 19 * * *"
+    - cron: "55 20 * * *"
+  workflow_dispatch:   # pulsante "Run workflow": invia subito una rassegna di prova
 
 permissions:
   contents: read
@@ -25,37 +44,18 @@ jobs:
       - name: Installa le dipendenze
         run: pip install -r requirements.txt
 
-      - name: Controlla le credenziali email
-        id: email
-        env:
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-        run: |
-          if [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASSWORD" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Email non configurata. Aggiungi SMTP_USER e SMTP_PASSWORD nei Secrets."
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Crea e invia la rassegna
-        if: steps.email.outputs.configured == 'true'
         env:
+          GITHUB_SCHEDULE: ${{ github.event.schedule }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
-        run: |
-          if [ -z "$SMTP_HOST" ]; then unset SMTP_HOST; fi
-          if [ -z "$SMTP_PORT" ]; then unset SMTP_PORT; fi
-          if [ -z "$MAIL_TO" ]; then unset MAIL_TO; fi
-          if [ -z "$DEEPL_API_KEY" ]; then unset DEEPL_API_KEY; fi
-          python rassegna.py --anteprima rassegna.html --invia
+        run: python rassegna.py --anteprima rassegna.html --invia
 
-      - name: Salva una copia dell'HTML
-        if: always() && steps.email.outputs.configured == 'true'
+      - name: Salva una copia dell'email
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: rassegna-${{ github.run_number }}
