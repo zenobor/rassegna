@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 import yaml
 
 import rassegna
-from rassegna import cron_programmazione, invio_programmato
+from rassegna import cron_programmazione, invio_programmato, sommario_feed
 
 
 class ProgrammazioneTest(unittest.TestCase):
@@ -26,6 +26,16 @@ class ProgrammazioneTest(unittest.TestCase):
     def test_mezzanotte_locale_programma_il_giorno_utc_precedente(self):
         cron = cron_programmazione(["lunedi"], "00:30", "Europe/Rome")
         self.assertEqual(cron, ["30 22 * * 0", "30 23 * * 0"])
+
+    def test_estratto_usa_il_testo_piu_ricco_del_feed_e_lo_limita(self):
+        voce = {
+            "summary": "<p>Estratto breve.</p>",
+            "content": [{"value": "<p>" + ("Dettagli della notizia. " * 40) + "</p>"}],
+        }
+        estratto = sommario_feed(voce)
+        self.assertGreater(len(estratto), len("Estratto breve."))
+        self.assertLessEqual(len(estratto), 600)
+        self.assertNotIn("<p>", estratto)
 
     def test_configurazione_guidata_salva_preferenze_e_tutela_email(self):
         with TemporaryDirectory() as directory:

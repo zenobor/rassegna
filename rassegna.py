@@ -85,11 +85,19 @@ def pulisci_html(testo: str) -> str:
     return re.sub(r"\s+", " ", testo).strip()
 
 
-def accorcia(testo: str, n: int = 300) -> str:
+def accorcia(testo: str, n: int = 600) -> str:
     if len(testo) <= n:
         return testo
     taglio = testo[:n].rsplit(" ", 1)[0]
     return taglio.rstrip(",;:.") + "…"
+
+
+def sommario_feed(voce) -> str:
+    """Sceglie l'estratto più ricco pubblicato dal feed, senza recuperare l'articolo."""
+    testi = [voce.get("summary", ""), voce.get("description", "")]
+    testi.extend(elemento.get("value", "") for elemento in voce.get("content", []) or [])
+    estratti = [pulisci_html(testo) for testo in testi if testo]
+    return accorcia(max(estratti, key=len, default=""))
 
 
 def data_in_italiano(d: datetime) -> str:
@@ -165,7 +173,7 @@ def leggi_feed(fonte: dict, dal: datetime, demo_dir: Path | None) -> list[Artico
         articoli.append(Articolo(
             titolo=titolo,
             link=v["link"],
-            sommario=accorcia(pulisci_html(v.get("summary", ""))),
+            sommario=sommario_feed(v),
             fonte=fonte["nome"],
             scheda=fonte.get("scheda", ""),
             data=data,
