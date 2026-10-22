@@ -1,0 +1,49 @@
+name: Rassegna mattutina
+
+on:
+  schedule:
+    # Le due ore UTC corrispondono alle 06:45 in Europe/Rome, estate e inverno.
+    - cron: "45 4 * * 1-5"
+    - cron: "45 5 * * 1-5"
+  workflow_dispatch:   # pulsante "Run workflow" per provarla quando vuoi
+
+permissions:
+  contents: read
+
+jobs:
+  rassegna:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installa le dipendenze
+        run: pip install -r requirements.txt
+
+      - name: Crea e invia la rassegna
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          # i secret vuoti diventano stringhe vuote: in quel caso usa i valori predefiniti
+          [ -z "$SMTP_HOST" ] && unset SMTP_HOST
+          [ -z "$SMTP_PORT" ] && unset SMTP_PORT
+          [ -z "$MAIL_TO" ] && unset MAIL_TO
+          python rassegna.py --anteprima rassegna.html --invia
+
+      - name: Salva una copia dell'HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rassegna-${{ github.run_number }}
+          path: rassegna.html
+          retention-days: 7
+          if-no-files-found: ignore

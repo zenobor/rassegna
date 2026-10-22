@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>Cyber Esempio (esempio)</title><link>https://example.com</link><description>Feed di esempio</description>
+<item><title>Critical zero-day exploited in popular VPN appliances</title><link>https://example.com/cyber-esempio/0</link><description>Attackers are chaining two vulnerabilities to gain remote access; patches are available.</description><pubDate>Thu, 22 Oct 2026 12:26:49 +0000</pubDate><media:content url="https://picsum.photos/seed/897/800/450" medium="image"/></item>
+<item><title>Chip, nuovi ordini miliardari per le schede di intelligenza artificiale</title><link>https://example.com/cyber-esempio/1</link><description>Le grandi aziende tecnologiche continuano a investire nei data center.</description><pubDate>Thu, 22 Oct 2026 10:26:49 +0000</pubDate></item>
+<item><title>Phishing campaign impersonates tax agencies across Europe</title><link>https://example.com/cyber-esempio/2</link><description>Researchers say the campaign targeted thousands of users in a week.</description><pubDate>Thu, 22 Oct 2026 08:26:49 +0000</pubDate></item>
+</channel></rss>

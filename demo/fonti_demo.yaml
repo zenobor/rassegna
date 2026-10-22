@@ -1,0 +1,13 @@
+# Fonti fittizie usate da: python rassegna.py --demo --anteprima
+- nome: "Agenzia Esempio"
+  file_demo: agenzia.xml
+  sezione: politica
+  scheda: "Fonte di esempio · proprietà e orientamento descritti qui"
+- nome: "Quotidiano Esempio"
+  file_demo: quotidiano.xml
+  sezione: esteri
+  scheda: "Fonte di esempio · quotidiano generalista"
+- nome: "Cyber Esempio"
+  file_demo: cyber.xml
+  sezione: cyber
+  scheda: "Fonte di esempio · sito tecnico"

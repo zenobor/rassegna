@@ -1,0 +1,9 @@
+testata: "La Rassegna"
+fuso_orario: "Europe/Rome"
+giorni_invio:
+  - lunedi
+  - martedi
+  - mercoledi
+  - giovedi
+  - venerdi
+ora_invio: "06:45"

@@ -1,0 +1,5 @@
+<div style="margin-top:6px; font-family:Calibri, Carlito, 'Segoe UI', Arial, sans-serif; font-size:11px; line-height:1.4; color:#8a8172;">
+  <span style="text-transform:uppercase; letter-spacing:1px; color:#9b1c1c; font-weight:bold;">{{ a.fonte }}</span>
+  {% if a.altre_fonti %}<span> · ripresa anche da {{ a.altre_fonti | join(', ') }}</span>{% endif %}
+  {% if a.scheda %}<br><span>{{ a.scheda }}</span>{% endif %}
+</div>

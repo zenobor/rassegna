@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>{{ testata }} – {{ data_breve }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Libre+Baskerville:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; padding:0; background:#f1ede4; }
+  .foglio { max-width:640px; margin:0 auto; background:#fffdf8; color:#1b1b1b; }
+  .testo, .testo p { font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif; font-size:16px; line-height:1.5; }
+  .serif { font-family: "Playfair Display", Georgia, "Times New Roman", serif; }
+  .corsivo { font-family: "Libre Baskerville", Georgia, "Times New Roman", serif; font-style:italic; }
+  a { color:inherit; text-decoration:none; }
+  img { border:0; display:block; max-width:100%; height:auto; }
+  @media (max-width:480px) { .pad { padding-left:16px !important; padding-right:16px !important; } .titolo-grande { font-size:24px !important; } }
+</style>
+</head>
+<body>
+<div class="foglio">
+
+  <!-- Testata -->
+  <div class="pad" style="padding:28px 28px 0; text-align:center;">
+    <div class="corsivo" style="font-size:12px; color:#6b6355; letter-spacing:.5px;">Anno {{ data_breve[-4:] }} · N. {{ numero }}</div>
+    <div class="serif" style="font-size:40px; font-weight:900; line-height:1.1; margin:6px 0 8px; letter-spacing:-.5px;">{{ testata }}</div>
+    <div class="corsivo" style="font-size:13px; color:#6b6355;">{{ sottotitolo }}</div>
+    <div style="border-top:3px double #1b1b1b; border-bottom:1px solid #1b1b1b; margin-top:14px; padding:6px 0; font-family:Georgia,serif; font-size:12px; letter-spacing:2px;">{{ data }}</div>
+  </div>
+
+  <!-- Prima pagina -->
+  {% if prima %}
+  <div class="pad" style="padding:20px 28px 4px;">
+    <div class="serif" style="font-size:13px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#9b1c1c; margin-bottom:12px;">Prima pagina</div>
+    {% for a in prima %}
+      {% set grande = loop.first %}
+      <a href="{{ a.link }}" style="display:block; margin-bottom:22px;">
+        {% if a.immagine and grande %}
+          <img src="{{ a.immagine }}" alt="" width="584" style="width:100%; margin-bottom:10px;">
+          <div class="corsivo" style="font-size:11px; color:#8a8172; margin:-6px 0 8px;">Foto: {{ a.fonte }}</div>
+        {% endif %}
+        <div class="serif {% if grande %}titolo-grande{% endif %}" style="font-size:{{ '30px' if grande else '21px' }}; font-weight:{{ 900 if grande else 700 }}; line-height:1.2; margin-bottom:6px;">{{ a.titolo }}</div>
+        {% if a.sommario %}<div class="testo" style="color:#33302b;">{{ a.sommario }}</div>{% endif %}
+        {% include "_fonte.html.j2" %}
+      </a>
+      {% if not loop.last %}<div style="border-top:1px solid #d9d2c3; margin:0 0 18px;"></div>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Sezioni -->
+  {% for s in sezioni %}
+  <div class="pad" style="padding:8px 28px 4px;">
+    <div style="border-top:2px solid #1b1b1b; padding-top:8px; margin-bottom:14px;">
+      <span class="serif" style="font-size:20px; font-weight:900;">{{ s.nome }}</span>
+    </div>
+    {% for a in s.articoli %}
+      <a href="{{ a.link }}" style="display:block; margin-bottom:18px;">
+        {% if a.immagine and loop.first %}
+          <img src="{{ a.immagine }}" alt="" width="584" style="width:100%; margin-bottom:8px;">
+        {% endif %}
+        <div class="serif" style="font-size:19px; font-weight:700; line-height:1.25; margin-bottom:4px;">{{ a.titolo }}</div>
+        {% if a.sommario %}<div class="testo" style="color:#33302b; font-size:15px;">{{ a.sommario }}</div>{% endif %}
+        {% include "_fonte.html.j2" %}
+      </a>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <!-- In breve -->
+  {% if in_breve %}
+  <div class="pad" style="padding:8px 28px 4px;">
+    <div style="border-top:2px solid #1b1b1b; padding-top:8px; margin-bottom:10px;">
+      <span class="serif" style="font-size:20px; font-weight:900;">In breve</span>
+    </div>
+    {% for a in in_breve %}
+      <div class="testo" style="font-size:15px; margin-bottom:8px;">
+        <a href="{{ a.link }}"><span style="color:#9b1c1c;">■</span> {{ a.titolo }} <span style="color:#8a8172; font-size:13px;">({{ a.fonte }})</span></a>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Accadde oggi -->
+  {% if accadde_oggi %}
+  <div class="pad" style="padding:12px 28px 4px;">
+    <div style="background:#f4efe3; padding:14px 16px;">
+      <div class="serif" style="font-size:16px; font-weight:900; margin-bottom:6px;">Accadde oggi</div>
+      {% for e in accadde_oggi %}
+        <div class="testo" style="font-size:14px; margin-bottom:6px;"><b>{{ e.anno }}</b> — {{ e.testo }}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Le fonti -->
+  <div class="pad" style="padding:18px 28px 28px;">
+    <div style="border-top:3px double #1b1b1b; padding-top:10px;">
+      <div class="serif" style="font-size:14px; font-weight:700; margin-bottom:6px;">Le fonti di oggi</div>
+      {% for f in fonti %}
+        <div class="testo" style="font-size:12px; line-height:1.4; color:#6b6355; margin-bottom:3px;"><b style="color:#1b1b1b;">{{ f.nome }}</b> — {{ f.scheda }}</div>
+      {% endfor %}
+      <div class="corsivo" style="font-size:11px; color:#8a8172; margin-top:12px;">Titoli e sommari dai feed RSS delle testate; ogni articolo rimanda alla fonte originale. Generata con La Rassegna (open source).</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,120 @@
+# ============================================================
+#  La Rassegna — configurazione
+#  Modifica questo file per personalizzare la TUA rassegna.
+# ============================================================
+
+testata: "La Rassegna"
+sottotitolo: "Politica · Intelligence · Terrorismo · Guerra ibrida · Cyber · Scienza e cultura"
+lingua: "it"
+fuso_orario: "Europe/Rome"
+
+# Quante ore indietro guardare (24 = notizie dell'ultimo giorno)
+ore_indietro: 26
+
+# Numero massimo di articoli per sezione e in prima pagina
+max_per_sezione: 4
+max_prima_pagina: 4
+max_in_breve: 10
+
+# Cerca l'immagine dentro la pagina dell'articolo se il feed non la fornisce
+# (più lento, ma la rassegna è più bella)
+cerca_immagini_nelle_pagine: true
+
+# "Accadde oggi" da Wikipedia
+accadde_oggi: true
+
+# ------------------------------------------------------------
+#  Sezioni, in ordine di apparizione.
+#  Le "parole_chiave" spostano un articolo in quella sezione
+#  anche se arriva da un feed generico. Vince la prima sezione
+#  (dall'alto) che trova una parola chiave nel titolo o nel testo.
+#  Parole corte (fino a 4 lettere) contano solo come parola intera;
+#  quelle più lunghe valgono anche come inizio di parola
+#  (es. "terroris" trova terrorismo, terroristi, terroristico).
+# ------------------------------------------------------------
+sezioni:
+  - id: cyber
+    nome: "Cybersecurity"
+    parole_chiave: [hacker, ransomware, cyber, malware, phishing, "data breach", "violazione dei dati", vulnerabilit, exploit, "zero-day", ddos, botnet, apt]
+  - id: intelligence
+    nome: "Servizi segreti e intelligence"
+    parole_chiave: [intelligence, spionaggio, spia, spie, "servizi segreti", aise, aisi, dis, cia, mossad, mi6, fsb, gru, espionage, spy, spies]
+  - id: terrorismo
+    nome: "Terrorismo"
+    parole_chiave: [terroris, jihad, "isis", "stato islamico", "al-qaeda", attentat, terror]
+  - id: ibrida
+    nome: "Guerra ibrida"
+    parole_chiave: [sabotaggi, disinformazione, "guerra ibrida", "hybrid", "cavi sottomarini", "undersea cable", sabotage, "flotta ombra", "shadow fleet", "droni sopra", "interferenz"]
+  - id: geopolitica
+    nome: "Guerre e geopolitica"
+    parole_chiave: [guerra, ucraina, russia, israele, gaza, iran, nato, cina, taiwan, missil, esercito, war, ukraine, military]
+  - id: politica
+    nome: "Politica italiana"
+    parole_chiave: [governo, meloni, parlamento, senato, camera, ministro, decreto, schlein, elezioni, mattarella]
+  - id: tecnologia
+    nome: "Tecnologia"
+    parole_chiave: [intelligenza artificiale, ia, "artificial intelligence", chip, nvidia, openai, anthropic, apple, google, microsoft, startup, smartphone]
+  - id: esteri
+    nome: "Esteri"
+    parole_chiave: []
+  - id: scienza
+    nome: "Scienza e curiosità"
+    parole_chiave: [scienziat, ricercatori, studio, scoperta, nasa, esa, spazio, researchers, scientists]
+
+# ------------------------------------------------------------
+#  Fonti (feed RSS).
+#  sezione  = sezione predefinita se nessuna parola chiave corrisponde
+#  scheda   = la nota in piccolo accanto alla fonte: orientamento,
+#             proprietà, interessi. Sono descrizioni INDICATIVE:
+#             verificale e correggile secondo le tue valutazioni.
+# ------------------------------------------------------------
+fonti:
+  - nome: "Il Post"
+    url: "https://www.ilpost.it/feed/"
+    sezione: esteri
+    scheda: "Quotidiano online indipendente · proprietà: Il Post srl (soci fondatori e giornalisti) · tono esplicativo"
+
+  - nome: "ANSA"
+    url: "https://www.ansa.it/sito/notizie/politica/politica_rss.xml"
+    sezione: politica
+    scheda: "Agenzia di stampa · cooperativa degli editori dei quotidiani italiani · taglio fattuale"
+
+  - nome: "ANSA Mondo"
+    url: "https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml"
+    sezione: esteri
+    scheda: "Agenzia di stampa · cooperativa degli editori dei quotidiani italiani · taglio fattuale"
+
+  - nome: "Sky TG24"
+    url: "https://tg24.sky.it/rss/tg24.xml"
+    sezione: esteri
+    scheda: "All-news TV · proprietà: Sky Italia (gruppo Comcast, USA) · generalista"
+
+  - nome: "BBC News"
+    url: "https://feeds.bbci.co.uk/news/world/rss.xml"
+    sezione: esteri
+    scheda: "Servizio pubblico britannico · finanziato dal canone · obbligo di imparzialità"
+
+  - nome: "The Record"
+    url: "https://therecord.media/feed"
+    sezione: cyber
+    scheda: "Testata cyber · edita da Recorded Future (threat intelligence, gruppo Mastercard)"
+
+  - nome: "BleepingComputer"
+    url: "https://www.bleepingcomputer.com/feed/"
+    sezione: cyber
+    scheda: "Sito tecnico indipendente · sicurezza informatica"
+
+  - nome: "The Hacker News"
+    url: "https://feeds.feedburner.com/TheHackersNews"
+    sezione: cyber
+    scheda: "Sito indipendente · sicurezza informatica · finanziato da pubblicità del settore"
+
+  - nome: "War on the Rocks"
+    url: "https://warontherocks.com/feed/"
+    sezione: geopolitica
+    scheda: "Analisi su difesa e sicurezza · indipendente (USA) · prospettiva atlantica"
+
+  - nome: "ScienceDaily"
+    url: "https://www.sciencedaily.com/rss/all.xml"
+    sezione: scienza
+    scheda: "Aggregatore di comunicati di università ed enti di ricerca"
