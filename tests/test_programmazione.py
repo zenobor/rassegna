@@ -105,26 +105,22 @@ class PreferenzeTest(unittest.TestCase):
                 self.assertEqual(rassegna.preferenze_da_modulo(config, modulo), 1)
             self.assertFalse((Path(directory) / "preferenze.yaml").exists())
 
-    def test_configurazione_guidata_con_liste_numerate(self):
+    def test_domande_con_liste_numerate(self):
         with TemporaryDirectory() as directory:
-            config = cartella_config(directory)
-            risposte = ["3, 1", "3", "4"]  # Sport e Politica, weekend, 08:00
-            with patch("builtins.input", side_effect=risposte), patch("builtins.print"):
-                self.assertEqual(rassegna.configura(config), 0)
-            cfg = rassegna.carica_configurazione(config)
-        self.assertEqual(cfg["argomenti"], ["politica", "sport"])
-        self.assertEqual(cfg["giorni"], "Solo sabato e domenica")
-        self.assertEqual(cfg["ora"], "08:00")
+            cfg = rassegna.carica_configurazione(cartella_config(directory))
+        risposte = ["3, 1", "3", "4"]  # Sport e Politica, weekend, 08:00
+        with patch("builtins.input", side_effect=risposte), patch("builtins.print"):
+            scelte = rassegna.chiedi_preferenze(cfg)
+        self.assertEqual(scelte, ("Solo sabato e domenica", "08:00", ["politica", "sport"]))
 
-    def test_configurazione_guidata_ripropone_le_scelte_se_errate(self):
+    def test_domande_ripropongono_le_scelte_se_errate(self):
         with TemporaryDirectory() as directory:
-            config = cartella_config(directory)
-            risposte = ["9", "", "", "99", ""]
-            with patch("builtins.input", side_effect=risposte), patch("builtins.print"):
-                rassegna.configura(config)
-            cfg = rassegna.carica_configurazione(config)
-        self.assertEqual(cfg["argomenti"], ["politica", "tecnologia", "sport"])
-        self.assertEqual(cfg["ora"], "07:00")
+            cfg = rassegna.carica_configurazione(cartella_config(directory))
+        risposte = ["9", "", "", "99", ""]
+        with patch("builtins.input", side_effect=risposte), patch("builtins.print"):
+            giorni, ora, argomenti = rassegna.chiedi_preferenze(cfg)
+        self.assertEqual(argomenti, ["politica", "tecnologia", "sport"])
+        self.assertEqual(ora, "07:00")
 
     def test_preferenze_scritte_a_mano_vengono_controllate(self):
         with TemporaryDirectory() as directory:

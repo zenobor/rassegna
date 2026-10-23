@@ -7,42 +7,68 @@ all'ora che preferisci. Raccoglie le notizie dai feed RSS di ANSA, Rai News, Il 
 Sky TG24, Il Sole 24 Ore, la Repubblica e altre testate italiane, tiene solo gli
 argomenti che scegli e mette in prima pagina le notizie riprese da più fonti.
 
-È gratuita, funziona interamente su GitHub e **non serve installare nulla**.
+È gratuita e gira su GitHub, quindi le email arrivano anche a computer spento.
+Si configura tutta dal terminale, rispondendo a qualche domanda.
 
 <p align="center"><img src="docs/anteprima.png" width="300" alt="Anteprima della rassegna"></p>
 
-## Come attivarla (10 minuti)
+## Come attivarla (5 minuti)
 
-**1. Copia il progetto.** Con un account GitHub gratuito, clicca **Fork** in alto a destra
-in questa pagina, poi **Create fork**.
+Ti servono un account GitHub (gratuito, puoi crearlo durante la configurazione) e un
+indirizzo email da cui spedire la rassegna, per esempio Gmail.
 
-**2. Accendi le automazioni.** Nella tua copia apri la scheda **Actions** e clicca
-**I understand my workflows, go ahead and enable them**.
+**1. Installa Python** da [python.org](https://www.python.org/downloads/) (versione 3.12 o
+successiva). Su Windows, durante l'installazione spunta **Add python.exe to PATH**.
 
-**3. Collega la tua email.** Vai in **Settings → Secrets and variables → Actions** e,
-con **New repository secret**, aggiungi:
+**2. Scarica il progetto:** in questa pagina clicca **Code → Download ZIP** ed estrai la cartella.
 
-| Nome | Cosa scrivere |
-| --- | --- |
-| `SMTP_USER` | L'indirizzo Gmail che spedisce la rassegna |
-| `SMTP_PASSWORD` | Una [password per le app di Google](https://myaccount.google.com/apppasswords) (serve la verifica in due passaggi). Non la tua password normale! |
-| `MAIL_TO` | Facoltativo: chi riceve la rassegna, anche più indirizzi separati da virgola. Se manca, la ricevi tu |
+**3. Apri il terminale nella cartella** (su Windows: tasto destro nella cartella →
+**Apri nel terminale**) e lancia:
 
-Usi un altro servizio email? Aggiungi anche `SMTP_HOST` e `SMTP_PORT` del tuo provider.
+```
+python -m pip install -r requirements.txt
+python rassegna.py
+```
 
-**4. Scegli cosa ricevere.** Apri **Actions → Configura la rassegna → Run workflow**.
-Si apre un modulo dove scegli giorni, ora e argomenti:
+Su macOS usa `python3` al posto di `python`.
 
-- **Giorni:** dal lunedì al venerdì, tutti i giorni, oppure solo sabato e domenica
-- **Ora:** dalle 05:00 alle 22:00 (ora italiana)
-- **Argomenti:** Politica · Esteri · Economia e lavoro · Tecnologia e sicurezza informatica ·
-  Scienza e salute · Cultura e spettacoli · Sport · Cronaca
+**4. Rispondi alle domande.** Il programma:
 
-Clicca il pulsante verde **Run workflow** e hai finito. Per cambiare idea in futuro,
-ripeti questo passaggio.
+- ti fa accedere a GitHub dal browser (e, se manca, installa la GitHub CLI ufficiale);
+- crea la tua copia del progetto sul tuo account;
+- ti chiede email e password e controlla subito che funzionino;
+- ti fa scegliere argomenti, giorni e ora;
+- attiva l'invio automatico e ti manda una rassegna di prova.
 
-**5. Prova subito.** Apri **Actions → Invia la rassegna → Run workflow**: in un paio di
-minuti ricevi la prima edizione. Da quel momento arriva da sola nei giorni e all'ora scelti.
+```
+── Passo 2 di 4 · Email ──────────────────────────
+Indirizzo email che spedisce la rassegna: mario@gmail.com
+Password per le app (mentre scrivi non si vede nulla):
+  ✓ Email verificata
+Chi riceve la rassegna? [mario@gmail.com]:
+```
+
+Con Gmail serve una [password per le app](https://myaccount.google.com/apppasswords)
+(richiede la verifica in due passaggi), non la tua password normale: il programma ti
+spiega come crearla. La password viene salvata solo nei Secrets cifrati di GitHub, non
+sul tuo computer.
+
+**Per cambiare argomenti, orario o email** rilancia `python rassegna.py`: ti propone le
+scelte attuali e ti basta premere Invio su quelle che non vuoi cambiare.
+
+<details>
+<summary>Preferisci fare tutto dal sito di GitHub, senza terminale?</summary>
+
+1. Clicca **Fork → Create fork** in questa pagina.
+2. Nella tua copia apri **Actions** e clicca **I understand my workflows, go ahead and enable them**.
+3. In **Settings → Secrets and variables → Actions** aggiungi i secret `SMTP_USER`
+   (il tuo Gmail), `SMTP_PASSWORD` (la password per le app) e, se vuoi, `MAIL_TO`
+   (chi riceve, più indirizzi separati da virgola). Per altri provider aggiungi
+   anche `SMTP_HOST` e `SMTP_PORT`.
+4. Apri **Actions → Configura la rassegna → Run workflow** e scegli giorni, ora e argomenti.
+5. Apri **Actions → Invia la rassegna → Run workflow** per ricevere subito una prova.
+
+</details>
 
 ## Se qualcosa non va
 
@@ -51,7 +77,7 @@ minuti ricevi la prima edizione. Da quel momento arriva da sola nei giorni e all
   i Secrets dell'email).
 - **Le email si sono fermate dopo qualche mese:** GitHub sospende le automazioni dei progetti
   senza attività da 60 giorni. Apri **Actions → Invia la rassegna** e clicca
-  **Enable workflow**, oppure ripeti "Configura la rassegna".
+  **Enable workflow**, oppure rilancia `python rassegna.py`, che le riattiva.
 - **Nella scheda Actions vedi molte esecuzioni brevi:** è normale. Il programma controlla
   ogni ora se è il momento di inviare e, se non lo è, si ferma in meno di un minuto.
 - **Una fonte non dà notizie:** ogni esecuzione elenca nel log quante notizie arrivano da
@@ -77,7 +103,6 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe rassegna.py --demo --anteprima anteprima-demo.html   # esempio offline
 .\.venv\Scripts\python.exe rassegna.py --anteprima                              # notizie vere, in anteprima.html
-.\.venv\Scripts\python.exe rassegna.py --configura                              # scelte dal terminale
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v                    # test
 ```
 Su macOS e Linux usa `python3 -m venv .venv` e `.venv/bin/python` al posto di

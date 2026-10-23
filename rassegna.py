@@ -7,7 +7,7 @@ argomenti scelti, mette in prima pagina le notizie riprese da più fonti e invia
 un'email HTML pensata per essere letta dal telefono.
 
 Uso:
-    python rassegna.py --configura              # scegli argomenti, giorni e ora
+    python rassegna.py                            # configurazione guidata: imposta tutto
     python rassegna.py --anteprima                # crea anteprima.html, non invia nulla
     python rassegna.py --invia                    # crea e invia l'email
     python rassegna.py --demo --anteprima         # prova senza internet (dati di esempio)
@@ -32,10 +32,14 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-import feedparser
-import requests
-import yaml
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+try:
+    import feedparser
+    import requests
+    import yaml
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
+except ImportError as errore:
+    sys.exit(f"Manca la libreria '{errore.name}'. Installa prima le dipendenze con:\n"
+             f"    {Path(sys.executable).stem} -m pip install -r requirements.txt")
 
 QUI = Path(__file__).resolve().parent
 UA = "Mozilla/5.0 (compatible; LaRassegna/1.0; +https://github.com/)"
@@ -369,14 +373,17 @@ def controlla_preferenze(cfg: dict) -> None:
         raise ValueError(f"preferenze.yaml: scegli almeno un argomento tra {ids}")
 
 
-def salva_preferenze(percorso: Path, giorni: str, ora: str, argomenti: list[str]) -> None:
-    testo = (
-        "# Le tue preferenze. Il modo più semplice per cambiarle è su GitHub:\n"
-        "# Actions → Configura la rassegna → Run workflow.\n"
+def testo_preferenze(giorni: str, ora: str, argomenti: list[str]) -> str:
+    return (
+        "# Le tue preferenze. Per cambiarle lancia dal terminale: python rassegna.py\n"
+        "# (oppure su GitHub: Actions → Configura la rassegna → Run workflow).\n"
         + yaml.safe_dump({"giorni": giorni, "ora": ora, "argomenti": argomenti},
                          allow_unicode=True, sort_keys=False)
     )
-    percorso.write_text(testo, encoding="utf-8")
+
+
+def salva_preferenze(percorso: Path, giorni: str, ora: str, argomenti: list[str]) -> None:
+    percorso.write_text(testo_preferenze(giorni, ora, argomenti), encoding="utf-8")
 
 
 def cron_orari() -> list[str]:
@@ -423,11 +430,9 @@ def _scegli(domanda: str, opzioni: list[str], attuale: str) -> str:
         print(f"Scrivi un numero da 1 a {len(opzioni)}.")
 
 
-def configura(percorso: Path) -> int:
-    cfg = carica_configurazione(percorso)
+def chiedi_preferenze(cfg: dict) -> tuple[str, str, list[str]]:
+    """Chiede argomenti, giorni e ora, proponendo le scelte attuali."""
     catalogo = cfg["catalogo_argomenti"]
-    print("Configura la tua rassegna. Premi Invio per tenere la scelta attuale.\n")
-
     print("Argomenti:")
     for i, argomento in enumerate(catalogo, 1):
         segno = "x" if argomento["id"] in cfg["argomenti"] else " "
@@ -449,12 +454,7 @@ def configura(percorso: Path) -> int:
     giorni = _scegli("Numero", list(OPZIONI_GIORNI), cfg["giorni"])
     print("\nOra di invio:")
     ora = _scegli("Numero", ORARI, str(cfg["ora"]))
-
-    pref_path = percorso.with_name("preferenze.yaml")
-    salva_preferenze(pref_path, giorni, ora, argomenti)
-    print(f"\nFatto! Preferenze salvate in {pref_path.name}.")
-    print("Per usarle negli invii automatici, carica il file su GitHub (git commit e git push).")
-    return 0
+    return giorni, ora, argomenti
 
 
 def preferenze_da_modulo(percorso: Path, modulo: dict) -> int:
@@ -602,7 +602,8 @@ def invia(oggetto: str, corpo_html: str, corpo_testo: str) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Rassegna stampa italiana via email")
     ap.add_argument("--config", default=str(QUI / "config.yaml"))
-    ap.add_argument("--configura", action="store_true", help="scegli argomenti, giorni e ora")
+    ap.add_argument("--configura", action="store_true",
+                    help="configurazione guidata (è anche ciò che succede senza argomenti)")
     ap.add_argument("--da-modulo", action="store_true",
                     help="salva le preferenze dal modulo di GitHub Actions (variabile MODULO)")
     ap.add_argument("--anteprima", nargs="?", const="anteprima.html", metavar="FILE",
@@ -613,18 +614,17 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     try:
-        if args.configura:
-            return configura(Path(args.config))
+        if args.configura or not (args.anteprima or args.invia or args.da_modulo):
+            import configurazione
+            return configurazione.avvia(Path(args.config))
         if args.da_modulo:
             return preferenze_da_modulo(Path(args.config), json.loads(os.environ.get("MODULO", "{}")))
         cfg = carica_configurazione(Path(args.config))
     except ValueError as e:
         log.error("%s", e)
         return 1
-    if not args.anteprima and not args.invia:
-        ap.error("scegli --anteprima e/o --invia")
 
-    ora = datetime.now(FUSO)
+    ora =datetime.now(FUSO)
     if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and not invio_programmato(
         cfg, ora, os.environ.get("GITHUB_SCHEDULE")
     ):

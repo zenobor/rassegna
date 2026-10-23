@@ -27,7 +27,7 @@ jobs:
         run: python -m unittest discover -s tests -v
 
       - name: Verifica la compilazione Python
-        run: python -m py_compile rassegna.py
+        run: python -m py_compile rassegna.py configurazione.py
 
       - name: Genera l'anteprima dimostrativa offline
         run: python rassegna.py --demo --anteprima anteprima-demo.html
