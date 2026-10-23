@@ -25,7 +25,8 @@ accadde_oggi: true
 #  Argomenti tra cui scegliere, nell'ordine in cui compaiono
 #  nell'email. Le notizie dei feed tematici (es. ANSA Sport)
 #  restano nel loro argomento; quelle dei feed generali vanno
-#  nel primo argomento di cui contengono una parola chiave.
+#  nell'argomento con più parole chiave trovate (quelle nel
+#  titolo contano di più; a parità vince il primo in elenco).
 #  Parole corte (fino a 4 lettere) contano solo come parola
 #  intera; quelle più lunghe anche come inizio di parola
 #  (es. "arrestat" trova arrestato, arrestati, arrestata).
@@ -36,7 +37,7 @@ catalogo_argomenti:
     parole_chiave: [governo, meloni, parlamento, senato, "camera dei deputati", ministr, decreto, elezioni, mattarella, schlein, quirinale, "legge di bilancio", manovra, opposizione, premier]
   - id: esteri
     nome: "Esteri"
-    parole_chiave: [guerra, ucraina, russia, israele, gaza, iran, nato, cina, "stati uniti", trump, putin, zelensky, onu, "unione europea", ue, bruxelles, terroris, intelligence, spionaggio, "medio oriente"]
+    parole_chiave: [guerra, ucraina, russia, israel, gaza, cisgiordania, netanyahu, hamas, libano, siria, farnesina, iran, nato, cina, "stati uniti", trump, putin, zelensky, onu, "unione europea", ue, bruxelles, terroris, intelligence, spionaggio, "medio oriente"]
   - id: economia
     nome: "Economia e lavoro"
     parole_chiave: [economia, inflazione, mercati, borsa, spread, pil, bce, "tassi di interesse", lavoro, occupazione, sindacat, imprese, bollette, pensioni, fisco, tasse]

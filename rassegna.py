@@ -98,6 +98,16 @@ class Articolo:
         return "\n\n".join(paragrafi[1:] if len(paragrafi) > 1 else paragrafi)
 
     @property
+    def estratto_breve(self) -> str:
+        """La prima frase del riassunto, per la sezione In breve."""
+        testo = self.paragrafi_sommario[0] if self.paragrafi_sommario else ""
+        frase = re.match(r".{40,}?[.!?](?=\s|$)", testo)
+        testo = frase.group(0) if frase else testo
+        if len(testo) > 220:
+            testo = testo[:220].rsplit(" ", 1)[0] + "…"
+        return testo
+
+    @property
     def ricco(self) -> bool:
         """Il feed offre un riassunto vero, non solo una riga."""
         return len(self.sommario) >= 200
@@ -263,18 +273,20 @@ def classifica(articoli: list[Articolo], argomenti: list[dict], scelti: list[str
     """Assegna ogni notizia a un argomento e tiene solo quelli scelti.
 
     Le notizie dei feed tematici (es. ANSA Sport) restano nel loro argomento;
-    quelle dei feed generali vanno nel primo argomento di cui contengono
-    una parola chiave."""
+    quelle dei feed generali vanno nell'argomento con più parole chiave
+    trovate (quelle nel titolo contano il triplo; a parità vince il primo)."""
     regole = [(a["id"], [compila_parola_chiave(k) for k in a.get("parole_chiave", [])])
               for a in argomenti]
     nomi = {a["id"]: a["nome"] for a in argomenti}
     selezionati = []
     for a in articoli:
         if a.sezione not in nomi:
-            testo = f"{a.titolo} {a.sommario}"
-            a.sezione = next(
-                (aid for aid, pattern in regole if any(p.search(testo) for p in pattern)), ""
-            )
+            punteggi = [
+                (sum(3 * bool(p.search(a.titolo)) + bool(p.search(a.sommario)) for p in pattern), aid)
+                for aid, pattern in regole
+            ]
+            migliore = max(punteggi, key=lambda x: x[0], default=(0, ""))
+            a.sezione = migliore[1] if migliore[0] else ""
         if a.sezione in scelti:
             a.nome_sezione = nomi[a.sezione]
             selezionati.append(a)
@@ -488,7 +500,13 @@ def impagina(cfg: dict, articoli: list[Articolo], ora: datetime) -> dict:
             sezioni.append({"nome": s["nome"], "articoli": pezzi[:n]})
         avanzi += pezzi[n:]
 
+    # In breve: le più recenti, ma al massimo due per fonte, così non domina chi pubblica di più
     avanzi.sort(key=lambda a: a.data, reverse=True)
+    in_breve, per_fonte = [], {}
+    for a in avanzi:
+        if per_fonte.get(a.fonte, 0) < 2:
+            in_breve.append(a)
+            per_fonte[a.fonte] = per_fonte.get(a.fonte, 0) + 1
     return {
         "testata": cfg.get("testata", "La Rassegna"),
         "sottotitolo": " · ".join(s["nome"] for s in argomenti),
@@ -498,7 +516,7 @@ def impagina(cfg: dict, articoli: list[Articolo], ora: datetime) -> dict:
         "numero": (ora.date() - datetime(ora.year, 1, 1).date()).days + 1,
         "prima": prima,
         "sezioni": sezioni,
-        "in_breve": avanzi[: cfg.get("max_in_breve", 8)],
+        "in_breve": in_breve[: cfg.get("max_in_breve", 8)],
         "accadde_oggi": accadde_oggi(ora) if cfg.get("accadde_oggi") else [],
     }
 
@@ -510,7 +528,7 @@ def testo_semplice(p: dict) -> str:
     for nome, arts in blocchi:
         righe.append(nome)
         for a in arts:
-            if a.nome_sezione:
+            if a.nome_sezione and nome == "PRIMA PAGINA":
                 righe.append(f"[{a.nome_sezione}]")
             righe.append(f"- {a.titolo} ({a.fonte})")
             if a.sommario:
@@ -524,8 +542,8 @@ def testo_semplice(p: dict) -> str:
         righe.append("IN BREVE")
         for a in p["in_breve"]:
             testo = f"- {a.titolo} ({a.fonte})"
-            if a.sommario:
-                testo += f" — {a.sommario}"
+            if a.estratto_breve:
+                testo += f" — {a.estratto_breve}"
             righe.append(f"{testo}\n  {a.link}")
     return "\n".join(righe)
 

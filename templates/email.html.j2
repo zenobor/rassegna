@@ -46,7 +46,7 @@
       {% endif %}
       {% if a.testo_articolo %}<div style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;line-height:1.55;white-space:pre-line;color:#1a1a1a;">{{ a.testo_articolo }}</div>{% endif %}
       {% include "_fonte.html.j2" %}
-      <div style="margin-top:8px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:#8b1a1a;">Leggi alla fonte originale →</div>
+      <div style="margin-top:8px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;"><a href="{{ a.link }}" style="color:#8b1a1a;text-decoration:none;">Leggi alla fonte originale →</a></div>
     </td></tr>
     {% endfor %}
   </table>
@@ -70,7 +70,7 @@
       {% endif %}
       {% if a.testo_articolo %}<div style="font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;line-height:1.55;white-space:pre-line;color:#1a1a1a;">{{ a.testo_articolo }}</div>{% endif %}
       {% include "_fonte.html.j2" %}
-      <div style="margin-top:8px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:#8b1a1a;">Leggi alla fonte originale →</div>
+      <div style="margin-top:8px;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;"><a href="{{ a.link }}" style="color:#8b1a1a;text-decoration:none;">Leggi alla fonte originale →</a></div>
     </td></tr>
     {% endfor %}
   </table>
@@ -85,7 +85,7 @@
       <ul style="margin:0;padding-left:22px;font-family:Calibri,Carlito,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.55;color:#1a1a1a;">
       {% for a in in_breve %}
         <li style="margin:0 0 12px;">
-          <b>{{ a.nome_sezione or "Notizie" }}:</b> {{ a.titolo }}{% if a.sommario %} — {{ a.sommario }}{% endif %}
+          <b>{{ a.nome_sezione or "Notizie" }}:</b> {{ a.titolo }}{% if a.estratto_breve %} — {{ a.estratto_breve }}{% endif %}
           <a href="{{ a.link }}" style="color:#8b1a1a;text-decoration:none;font-family:'Oswald','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;"> {{ a.fonte }} →</a>
         </li>
       {% endfor %}

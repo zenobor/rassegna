@@ -222,6 +222,25 @@ class NotizieTest(unittest.TestCase):
              ("Attacco ransomware a un ospedale", "Tecnologia")],
         )
 
+    def test_classifica_sceglie_l_argomento_con_piu_parole_chiave(self):
+        catalogo = [
+            {"id": "politica", "nome": "Politica", "parole_chiave": ["governo"]},
+            {"id": "tecnologia", "nome": "Tecnologia", "parole_chiave": ["ransomware", "hacker"]},
+        ]
+        notizia = articolo("Attacco ransomware a un ospedale",
+                           "Gli hacker chiedono un riscatto, il governo segue il caso.",
+                           sezione="generale")
+        self.assertEqual(classifica([notizia], catalogo, ["politica", "tecnologia"])[0].sezione,
+                         "tecnologia")
+
+    def test_estratto_breve_tiene_la_prima_frase(self):
+        notizia = articolo("Titolo", "La prima frase spiega bene cosa è successo oggi. "
+                           "La seconda aggiunge dettagli che In breve non mostra.")
+        self.assertEqual(notizia.estratto_breve, "La prima frase spiega bene cosa è successo oggi.")
+        lunga = articolo("Titolo", "parola " * 100)
+        self.assertLessEqual(len(lunga.estratto_breve), 221)
+        self.assertTrue(lunga.estratto_breve.endswith("…"))
+
     def test_doppioni_tengono_il_riassunto_migliore_e_citano_le_altre_fonti(self):
         breve = articolo("Attacco hacker colpisce una grande azienda", "Una riga.",
                          fonte="Agenzia", priorita=1)
@@ -249,6 +268,16 @@ class ImpaginazioneTest(unittest.TestCase):
         self.assertEqual(pagina["sottotitolo"], "Politica · Tecnologia")
         self.assertEqual(pagina["data_breve"], "giovedì 22 ottobre 2026")
 
+    def test_in_breve_non_e_dominato_da_una_sola_fonte(self):
+        cfg = {"catalogo_argomenti": CATALOGO, "argomenti": ["politica"],
+               "max_prima_pagina": 0, "max_per_argomento": 0}
+        notizie = [articolo(f"Notizia {i}", fonte="Prolifica", sezione="politica",
+                            data=datetime(2026, 10, 22, 12, i, tzinfo=timezone.utc))
+                   for i in range(5)]
+        notizie.append(articolo("Notizia vecchia", fonte="Altra", sezione="politica"))
+        pagina = rassegna.impagina(cfg, notizie, datetime(2026, 10, 22, tzinfo=rassegna.FUSO))
+        self.assertEqual([a.fonte for a in pagina["in_breve"]], ["Prolifica", "Prolifica", "Altra"])
+
     def test_template_email_mostra_estratti_fonti_e_link_originali(self):
         notizia = articolo(
             "Notizia di prova", "Estratto completo pubblicato dal feed.",
@@ -263,7 +292,7 @@ class ImpaginazioneTest(unittest.TestCase):
         self.assertGreaterEqual(html_email.count("Estratto completo pubblicato dal feed."), 2)
         self.assertIn('Fonte: <a href="https://example.com/Notizia-di-prova"', html_email)
         self.assertIn('href="https://second.example/story"', html_email)
-        self.assertIn("Leggi alla fonte originale", html_email)
+        self.assertIn('style="color:#8b1a1a;text-decoration:none;">Leggi alla fonte originale', html_email)
         self.assertIn("Anno 2026", html_email)
         self.assertIn("PRIMA PAGINA", rassegna.testo_semplice(pagina))
 
