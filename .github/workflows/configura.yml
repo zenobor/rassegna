@@ -2,7 +2,7 @@ name: Configura la rassegna
 
 # Actions → Configura la rassegna → Run workflow: si apre un modulo con le scelte.
 # Le opzioni devono restare uguali a OPZIONI_GIORNI, ORARI e catalogo_argomenti
-# (lo controllano i test).
+# (gli argomenti nell'elenco numerato; lo controllano i test).
 on:
   workflow_dispatch:
     inputs:
@@ -19,38 +19,10 @@ on:
         type: choice
         options: ["05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"]
         default: "07:00"
-      politica:
-        description: "Politica"
-        type: boolean
-        default: true
-      esteri:
-        description: "Esteri"
-        type: boolean
-        default: true
-      economia:
-        description: "Economia e lavoro"
-        type: boolean
-        default: true
-      tecnologia:
-        description: "Tecnologia e sicurezza informatica"
-        type: boolean
-        default: true
-      scienza:
-        description: "Scienza e salute"
-        type: boolean
-        default: true
-      cultura:
-        description: "Cultura e spettacoli"
-        type: boolean
-        default: true
-      sport:
-        description: "Sport"
-        type: boolean
-        default: false
-      cronaca:
-        description: "Cronaca"
-        type: boolean
-        default: true
+      argomenti:
+        description: "Argomenti: scrivi i numeri, es. 1 3 5 oppure 1-4 (tutti = tutti). 1 Politica · 2 Esteri · 3 Economia e lavoro · 4 Tecnologia e cybersicurezza · 5 Scienza e spazio · 6 Salute · 7 Ambiente e clima · 8 Cultura e spettacoli · 9 Sport · 10 Cronaca · 11 Motori · 12 Cibo e viaggi"
+        type: string
+        default: "1-8 10"
 
 permissions:
   contents: write

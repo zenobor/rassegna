@@ -37,7 +37,10 @@ Su macOS usa `python3` al posto di `python`.
 - ti fa accedere a GitHub dal browser (e, se manca, installa la GitHub CLI ufficiale);
 - crea la tua copia del progetto sul tuo account;
 - ti chiede email e password e controlla subito che funzionino;
-- ti fa scegliere argomenti, giorni e ora;
+- ti fa scegliere argomenti, giorni e ora scrivendo dei numeri (es. `1 3 5` oppure `1-4`).
+  Gli argomenti sono 12: Politica · Esteri · Economia e lavoro · Tecnologia e cybersicurezza ·
+  Scienza e spazio · Salute · Ambiente e clima · Cultura e spettacoli · Sport · Cronaca ·
+  Motori · Cibo e viaggi;
 - attiva l'invio automatico e ti manda una rassegna di prova.
 
 ```
@@ -65,7 +68,7 @@ scelte attuali e ti basta premere Invio su quelle che non vuoi cambiare.
    (il tuo Gmail), `SMTP_PASSWORD` (la password per le app) e, se vuoi, `MAIL_TO`
    (chi riceve, più indirizzi separati da virgola). Per altri provider aggiungi
    anche `SMTP_HOST` e `SMTP_PORT`.
-4. Apri **Actions → Configura la rassegna → Run workflow** e scegli giorni, ora e argomenti.
+4. Apri **Actions → Configura la rassegna → Run workflow** e scegli giorni, ora e argomenti (i numeri, es. `1 3 5`).
 5. Apri **Actions → Invia la rassegna → Run workflow** per ricevere subito una prova.
 
 </details>

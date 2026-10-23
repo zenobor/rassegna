@@ -78,10 +78,9 @@ class ProgrammazioneTest(unittest.TestCase):
         catalogo = rassegna.carica_configurazione(rassegna.QUI / "config.yaml")["catalogo_argomenti"]
         self.assertEqual(campi["giorni"]["options"], list(rassegna.OPZIONI_GIORNI))
         self.assertEqual(campi["ora"]["options"], rassegna.ORARI)
-        self.assertEqual(
-            [(k, v["description"]) for k, v in campi.items() if v["type"] == "boolean"],
-            [(a["id"], a["nome"]) for a in catalogo],
-        )
+        elenco = " · ".join(f"{i} {a['nome']}" for i, a in enumerate(catalogo, 1))
+        self.assertTrue(campi["argomenti"]["description"].endswith(elenco))
+        self.assertIsNotNone(rassegna.leggi_numeri(campi["argomenti"]["default"], len(catalogo)))
         self.assertLessEqual(len(campi), 10)  # limite di GitHub per i moduli
 
 
@@ -89,8 +88,7 @@ class PreferenzeTest(unittest.TestCase):
     def test_preferenze_dal_modulo_github(self):
         with TemporaryDirectory() as directory:
             config = cartella_config(directory)
-            modulo = {"giorni": "Tutti i giorni", "ora": "08:00",
-                      "politica": True, "tecnologia": "true", "sport": False}
+            modulo = {"giorni": "Tutti i giorni", "ora": "08:00", "argomenti": "1, 2"}
             self.assertEqual(rassegna.preferenze_da_modulo(config, modulo), 0)
             cfg = rassegna.carica_configurazione(config)
         self.assertEqual(cfg["giorni"], "Tutti i giorni")
@@ -100,7 +98,7 @@ class PreferenzeTest(unittest.TestCase):
     def test_il_modulo_senza_argomenti_non_salva_nulla(self):
         with TemporaryDirectory() as directory:
             config = cartella_config(directory)
-            modulo = {"giorni": "Tutti i giorni", "ora": "08:00", "politica": False}
+            modulo = {"giorni": "Tutti i giorni", "ora": "08:00", "argomenti": "7"}
             with self.assertLogs("rassegna", "ERROR"):
                 self.assertEqual(rassegna.preferenze_da_modulo(config, modulo), 1)
             self.assertFalse((Path(directory) / "preferenze.yaml").exists())
@@ -108,7 +106,7 @@ class PreferenzeTest(unittest.TestCase):
     def test_domande_con_liste_numerate(self):
         with TemporaryDirectory() as directory:
             cfg = rassegna.carica_configurazione(cartella_config(directory))
-        risposte = ["3, 1", "3", "4"]  # Sport e Politica, weekend, 08:00
+        risposte = ["3 1", "3", "8"]  # Sport e Politica, weekend, 08:00
         with patch("builtins.input", side_effect=risposte), patch("builtins.print"):
             scelte = rassegna.chiedi_preferenze(cfg)
         self.assertEqual(scelte, ("Solo sabato e domenica", "08:00", ["politica", "sport"]))
@@ -121,6 +119,20 @@ class PreferenzeTest(unittest.TestCase):
             giorni, ora, argomenti = rassegna.chiedi_preferenze(cfg)
         self.assertEqual(argomenti, ["politica", "tecnologia", "sport"])
         self.assertEqual(ora, "07:00")
+
+    def test_numeri_scritti_in_tanti_modi(self):
+        self.assertEqual(rassegna.leggi_numeri("1 3 5", 12), [1, 3, 5])
+        self.assertEqual(rassegna.leggi_numeri("5,1, 3", 12), [1, 3, 5])
+        self.assertEqual(rassegna.leggi_numeri("1 - 3  10", 12), [1, 2, 3, 10])
+        self.assertEqual(rassegna.leggi_numeri("Tutti", 3), [1, 2, 3])
+        for sbagliato in ("", "13", "0", "a", "4-2", "1,,x"):
+            self.assertIsNone(rassegna.leggi_numeri(sbagliato, 12), sbagliato)
+
+    def test_ora_si_scrive_direttamente(self):
+        with patch("builtins.input", side_effect=["25", "7:30", "18"]), patch("builtins.print"):
+            self.assertEqual(rassegna._chiedi_ora("07:00"), "18:00")
+        with patch("builtins.input", side_effect=["9.00"]), patch("builtins.print"):
+            self.assertEqual(rassegna._chiedi_ora("07:00"), "09:00")
 
     def test_preferenze_scritte_a_mano_vengono_controllate(self):
         with TemporaryDirectory() as directory:

@@ -42,11 +42,17 @@ catalogo_argomenti:
     nome: "Economia e lavoro"
     parole_chiave: [economia, inflazione, mercati, borsa, spread, pil, bce, "tassi di interesse", lavoro, occupazione, sindacat, imprese, bollette, pensioni, fisco, tasse]
   - id: tecnologia
-    nome: "Tecnologia e sicurezza informatica"
+    nome: "Tecnologia e cybersicurezza"
     parole_chiave: [tecnologi, "intelligenza artificiale", ia, hacker, cyber, ransomware, malware, phishing, informatic, smartphone, app, apple, google, microsoft, openai, chip, digitale, startup]
   - id: scienza
-    nome: "Scienza e salute"
-    parole_chiave: [scienz, ricercatori, scoperta, spazio, nasa, esa, salute, medic, malattia, vaccin, ospedal, clima]
+    nome: "Scienza e spazio"
+    parole_chiave: [scienz, ricercatori, scoperta, spazio, nasa, esa, astronom, pianet, fisic, archeolog, fossil]
+  - id: salute
+    nome: "Salute"
+    parole_chiave: [salute, medic, malattia, vaccin, ospedal, tumor, farmac, sanità, virus, pazienti, dieta]
+  - id: ambiente
+    nome: "Ambiente e clima"
+    parole_chiave: [ambient, clima, climatic, inquinament, emissioni, siccità, rinnovabil, biodiversità, ghiacciai, "riscaldamento globale", animali, plastica]
   - id: cultura
     nome: "Cultura e spettacoli"
     parole_chiave: [cultura, libro, libri, mostra, museo, cinema, film, festival, musica, concerto, teatro, arte, "serie tv"]
@@ -56,6 +62,12 @@ catalogo_argomenti:
   - id: cronaca
     nome: "Cronaca"
     parole_chiave: [arrestat, omicidio, incidente, polizia, carabinieri, indagin, procura, tribunale, processo, maltempo, alluvione, terremoto, incendio]
+  - id: motori
+    nome: "Motori"
+    parole_chiave: [automobil, auto, "auto elettric", moto, suv, stellantis, fiat, concessionari, "salone dell'auto"]
+  - id: cibo
+    nome: "Cibo e viaggi"
+    parole_chiave: [cucina, ricett, ristorant, chef, vino, gastronomi, viaggi, vacanz, turism, borghi]
 
 # ------------------------------------------------------------
 #  Fonti (feed RSS italiani).
@@ -74,15 +86,20 @@ fonti:
   - {nome: "ANSA Cronaca", url: "https://www.ansa.it/sito/notizie/cronaca/cronaca_rss.xml", argomento: cronaca, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
   - {nome: "ANSA Tecnologia", url: "https://www.ansa.it/canale_tecnologia/notizie/tecnologia_rss.xml", argomento: tecnologia, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
   - {nome: "ANSA Scienza", url: "https://www.ansa.it/canale_scienza_tecnica/notizie/scienzaetecnica_rss.xml", argomento: scienza, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
-  - {nome: "ANSA Salute", url: "https://www.ansa.it/canale_saluteebenessere/notizie/saluteebenessere_rss.xml", argomento: scienza, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Salute", url: "https://www.ansa.it/canale_saluteebenessere/notizie/saluteebenessere_rss.xml", argomento: salute, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
   - {nome: "ANSA Cultura", url: "https://www.ansa.it/sito/notizie/cultura/cultura_rss.xml", argomento: cultura, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
   - {nome: "ANSA Sport", url: "https://www.ansa.it/sito/notizie/sport/sport_rss.xml", argomento: sport, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Motori", url: "https://www.ansa.it/canale_motori/notizie/motori_rss.xml", argomento: motori, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA Terra&Gusto", url: "https://www.ansa.it/canale_terraegusto/notizie/terraegusto_rss.xml", argomento: cibo, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
+  - {nome: "ANSA ViaggiArt", url: "https://www.ansa.it/canale_viaggiart/it/notizie/viaggiart_rss.xml", argomento: cibo, priorita: 1, scheda: "Agenzia di stampa, cooperativa di editori"}
 
   # Servizio pubblico
   - {nome: "Rai News", url: "https://www.rainews.it/rss/politica", argomento: politica, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
   - {nome: "Rai News Esteri", url: "https://www.rainews.it/rss/esteri", argomento: esteri, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
   - {nome: "Rai News Cronaca", url: "https://www.rainews.it/rss/cronaca", argomento: cronaca, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
-  - {nome: "Rai News Salute", url: "https://www.rainews.it/rss/salute", argomento: scienza, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
+  - {nome: "Rai News Salute", url: "https://www.rainews.it/rss/salute", argomento: salute, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
+  - {nome: "Rai News Ambiente", url: "https://www.rainews.it/rss/ambiente", argomento: ambiente, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
+  - {nome: "Rai News Sport", url: "https://www.rainews.it/rss/sport", argomento: sport, priorita: 1, scheda: "Servizio pubblico radiotelevisivo"}
 
   # Quotidiani e testate nazionali
   - {nome: "Il Post", url: "https://www.ilpost.it/feed", argomento: generale, priorita: 2, scheda: "Quotidiano online, taglio esplicativo"}
@@ -97,6 +114,9 @@ fonti:
   - {nome: "la Repubblica Economia", url: "https://www.repubblica.it/rss/economia/rss2.0.xml", argomento: economia, priorita: 2, scheda: "Quotidiano nazionale generalista"}
   - {nome: "la Repubblica Cronaca", url: "https://www.repubblica.it/rss/cronaca/rss2.0.xml", argomento: cronaca, priorita: 2, scheda: "Quotidiano nazionale generalista"}
   - {nome: "la Repubblica Tecnologia", url: "https://www.repubblica.it/rss/tecnologia/rss2.0.xml", argomento: tecnologia, priorita: 2, scheda: "Quotidiano nazionale generalista"}
+  - {nome: "la Repubblica Salute", url: "https://www.repubblica.it/rss/salute/rss2.0.xml", argomento: salute, priorita: 2, scheda: "Quotidiano nazionale generalista"}
+  - {nome: "la Repubblica Ambiente", url: "https://www.repubblica.it/rss/ambiente/rss2.0.xml", argomento: ambiente, priorita: 2, scheda: "Quotidiano nazionale generalista"}
+  - {nome: "la Repubblica Motori", url: "https://www.repubblica.it/rss/motori/rss2.0.xml", argomento: motori, priorita: 2, scheda: "Quotidiano nazionale generalista"}
   - {nome: "Il Fatto Quotidiano", url: "https://www.ilfattoquotidiano.it/feed/", argomento: generale, priorita: 3, scheda: "Quotidiano nazionale generalista"}
   - {nome: "Internazionale", url: "https://www.internazionale.it/sitemaps/rss.xml", argomento: generale, priorita: 3, scheda: "Settimanale, stampa estera tradotta"}
 
@@ -104,3 +124,7 @@ fonti:
   - {nome: "Cybersecurity360", url: "https://www.cybersecurity360.it/feed/", argomento: tecnologia, priorita: 3, scheda: "Testata sulla sicurezza informatica"}
   - {nome: "Punto Informatico", url: "https://www.punto-informatico.it/feed/", argomento: tecnologia, priorita: 3, scheda: "Testata di tecnologia"}
   - {nome: "Analisi Difesa", url: "https://www.analisidifesa.it/feed/", argomento: esteri, priorita: 3, scheda: "Rivista su difesa e sicurezza"}
+  - {nome: "LifeGate", url: "https://www.lifegate.it/feed", argomento: ambiente, priorita: 3, scheda: "Testata su ambiente e sostenibilità"}
+  - {nome: "Rinnovabili.it", url: "https://www.rinnovabili.it/feed/", argomento: ambiente, priorita: 3, scheda: "Testata su energia e ambiente"}
+  - {nome: "SiViaggia", url: "https://www.siviaggia.it/feed/", argomento: cibo, priorita: 3, scheda: "Testata di viaggi"}
+  - {nome: "Gambero Rosso", url: "https://www.gamberorosso.it/feed/", argomento: cibo, priorita: 3, scheda: "Testata di cucina e vino"}

@@ -34,9 +34,9 @@ class ConfigurazioneGuidataTest(unittest.TestCase):
         risposte = [
             "mario@gmail.com",   # email
             "",                  # destinatari: lui stesso
-            "1, 7",              # Politica e Sport
+            "1 9",               # Politica e Sport
             "1",                 # dal lunedì al venerdì
-            "3",                 # 07:00
+            "7",                 # 07:00
             "",                  # rassegna di prova: sì
         ]
         self.assertEqual(avvia_con(risposte, gh), 0)

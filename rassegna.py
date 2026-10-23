@@ -418,6 +418,24 @@ def invio_programmato(cfg: dict, adesso: datetime, cron: str | None = None) -> b
     return edizione.weekday() in giorni and (edizione.hour, edizione.minute) == (ora_scelta, 0)
 
 
+def leggi_numeri(testo: str, massimo: int) -> list[int] | None:
+    """Legge una scelta come "1 2 5", "1,2,5", "1-4" o "tutti".
+    Restituisce i numeri in ordine, oppure None se la scelta non è valida."""
+    testo = re.sub(r"\s*-\s*", "-", testo.strip().lower())
+    if testo in ("tutti", "tutto", "t"):
+        return list(range(1, massimo + 1))
+    scelti = set()
+    for pezzo in re.split(r"[\s,;]+", testo):
+        intervallo = re.fullmatch(r"(\d+)(?:-(\d+))?", pezzo)
+        if not intervallo:
+            return None
+        inizio, fine = int(intervallo.group(1)), int(intervallo.group(2) or intervallo.group(1))
+        if not 1 <= inizio <= fine <= massimo:
+            return None
+        scelti.update(range(inizio, fine + 1))
+    return sorted(scelti) or None
+
+
 def _scegli(domanda: str, opzioni: list[str], attuale: str) -> str:
     for i, opzione in enumerate(opzioni, 1):
         print(f"  {i}. {opzione}")
@@ -427,41 +445,63 @@ def _scegli(domanda: str, opzioni: list[str], attuale: str) -> str:
             return attuale
         if risposta.isdigit() and 1 <= int(risposta) <= len(opzioni):
             return opzioni[int(risposta) - 1]
-        print(f"Scrivi un numero da 1 a {len(opzioni)}.")
+        print(f"  Scrivi un numero da 1 a {len(opzioni)}.")
+
+
+def _chiedi_ora(attuale: str) -> str:
+    prima, ultima = int(ORARI[0][:2]), int(ORARI[-1][:2])
+    while True:
+        risposta = input(f"Ora di invio, dalle {prima} alle {ultima} (es. 7 oppure 18) "
+                         f"[{int(attuale[:2])}]: ").strip()
+        if not risposta:
+            return attuale
+        ora = re.fullmatch(r"(\d{1,2})(?:[:.]00)?", risposta)
+        if ora and f"{int(ora.group(1)):02d}:00" in ORARI:
+            return f"{int(ora.group(1)):02d}:00"
+        print(f"  Scrivi un'ora intera tra {prima} e {ultima}, per esempio 7.")
 
 
 def chiedi_preferenze(cfg: dict) -> tuple[str, str, list[str]]:
     """Chiede argomenti, giorni e ora, proponendo le scelte attuali."""
     catalogo = cfg["catalogo_argomenti"]
-    print("Argomenti:")
-    for i, argomento in enumerate(catalogo, 1):
-        segno = "x" if argomento["id"] in cfg["argomenti"] else " "
-        print(f"  {i}. [{segno}] {argomento['nome']}")
+    print("Argomenti ([x] = già scelti):")
+    voci = [f"{i:>2}. [{'x' if a['id'] in cfg['argomenti'] else ' '}] {a['nome']}"
+            for i, a in enumerate(catalogo, 1)]
+    meta = (len(voci) + 1) // 2
+    larghezza = max(len(v) for v in voci[:meta]) + 3
+    for i in range(meta):
+        destra = voci[i + meta] if i + meta < len(voci) else ""
+        print(f"  {voci[i]:<{larghezza}}{destra}".rstrip())
+    print("\nScrivi i numeri che vuoi: 1 3 5  ·  1-4  ·  tutti  ·  Invio = tieni i segnati")
     while True:
-        risposta = input("Numeri degli argomenti che vuoi ricevere, separati da virgola "
-                         "(es. 1,2,5): ").strip()
+        risposta = input("Argomenti: ").strip()
         if not risposta:
-            argomenti = cfg["argomenti"]
+            argomenti = [a["id"] for a in catalogo if a["id"] in cfg["argomenti"]]
             break
-        numeri = [n.strip() for n in risposta.split(",") if n.strip()]
-        if numeri and all(n.isdigit() and 1 <= int(n) <= len(catalogo) for n in numeri):
-            scelti = {catalogo[int(n) - 1]["id"] for n in numeri}
-            argomenti = [a["id"] for a in catalogo if a["id"] in scelti]
+        numeri = leggi_numeri(risposta, len(catalogo))
+        if numeri:
+            argomenti = [catalogo[n - 1]["id"] for n in numeri]
             break
-        print(f"Scrivi uno o più numeri da 1 a {len(catalogo)}, separati da virgola.")
+        print(f"  Non ho capito: scrivi numeri da 1 a {len(catalogo)}, per esempio 1 3 5.")
+    print("  → " + ", ".join(a["nome"] for a in catalogo if a["id"] in argomenti))
 
     print("\nGiorni di invio:")
     giorni = _scegli("Numero", list(OPZIONI_GIORNI), cfg["giorni"])
-    print("\nOra di invio:")
-    ora = _scegli("Numero", ORARI, str(cfg["ora"]))
+    print()
+    ora = _chiedi_ora(str(cfg["ora"]))
     return giorni, ora, argomenti
 
 
 def preferenze_da_modulo(percorso: Path, modulo: dict) -> int:
     """Salva le scelte fatte nel modulo 'Configura la rassegna' di GitHub Actions."""
     cfg = carica_configurazione(percorso)
-    argomenti = [a["id"] for a in cfg["catalogo_argomenti"]
-                 if str(modulo.get(a["id"], "false")).lower() == "true"]
+    catalogo = cfg["catalogo_argomenti"]
+    numeri = leggi_numeri(str(modulo.get("argomenti", "")), len(catalogo))
+    if not numeri:
+        log.error("Argomenti non validi: scrivi numeri da 1 a %d, per esempio 1 3 5 "
+                  "oppure 1-4.", len(catalogo))
+        return 1
+    argomenti = [catalogo[n - 1]["id"] for n in numeri]
     cfg.update({"giorni": modulo.get("giorni"), "ora": modulo.get("ora"), "argomenti": argomenti})
     try:
         controlla_preferenze(cfg)

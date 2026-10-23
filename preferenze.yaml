@@ -1,5 +1,5 @@
-# Le tue preferenze. Il modo più semplice per cambiarle è su GitHub:
-# Actions → Configura la rassegna → Run workflow.
+# Le tue preferenze. Per cambiarle lancia dal terminale: python rassegna.py
+# (oppure su GitHub: Actions → Configura la rassegna → Run workflow).
 giorni: Dal lunedì al venerdì
 ora: 07:00
 argomenti:
@@ -8,5 +8,7 @@ argomenti:
 - economia
 - tecnologia
 - scienza
+- salute
+- ambiente
 - cultura
 - cronaca
